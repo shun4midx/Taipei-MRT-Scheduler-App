@@ -66,6 +66,38 @@ std::string pathTimesToStr(const PathTimes& pt, const Language& lang) {
 std::string pathHeaderStr(const Path& p, const PathTimes& pt, const Language& lang, const TicketType& tt) {
     std::string output = std::to_string(timeToMins(pt.back().second) - timeToMins(pt.front().first)) + MINS.at(lang) + " $" + std::to_string(travelPrice(p.front(), p.back(), tt)) + " ";
 
+    if (tt == ADULT) {
+        if (lang == en) {
+            output += "Adult ";
+        } else if (lang == zh) {
+            output += "成人 ";
+        } else if (lang == jp) {
+            output += "大人 ";
+        } else if (lang == kr) {
+            output += "성인 ";
+        }
+    } else if (tt == CHILD) {
+        if (lang == en) {
+            output += "Child ";
+        } else if (lang == zh) {
+            output += "兒童 ";
+        } else if (lang == jp) {
+            output += "子供 ";
+        } else if (lang == kr) {
+            output += "어린이 ";
+        }
+    } else if (tt == ELDERLY) {
+        if (lang == en) {
+            output += "Elderly ";
+        } else if (lang == zh) {
+            output += "敬老 ";
+        } else if (lang == jp) {
+            output += "高齢者 ";
+        } else if (lang == kr) {
+            output += "노인 ";
+        }
+    }
+
     output += LINE_EMOJIS.at(p[0].line);
 
     Line curr_line = p[0].line;
