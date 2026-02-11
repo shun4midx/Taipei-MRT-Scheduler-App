@@ -215,6 +215,17 @@ public class MainActivity extends AppCompatActivity {
 
             @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
+
+        String savedAge = getSharedPreferences("settings", MODE_PRIVATE)
+                .getString("age_group", "ADULT");
+
+        switch (savedAge) {
+            case "CHILD": user_age = CHILD; break;
+            case "ELDERLY": user_age = ELDERLY; break;
+            default: user_age = ADULT;
+        }
+
+        updateCostLabels();
     }
 
     @Override
@@ -357,21 +368,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    void refreshCostUI() {
-        if (currentMode == Mode.NEXT_TRAIN) {
-            return;
-        }
-
-        if (fromLine.getSelectedItem() == null || fromStation.getSelectedItem() == null) {
-            return;
-        }
-
-        LineItem line = (LineItem) fromLine.getSelectedItem();
-        int stationIndex = fromStation.getSelectedItemPosition();
-
-        recomputeCurrentResult();
-    }
-
     void applyLocale(String lang) {
         Locale locale = new Locale(lang);
         Locale.setDefault(locale);
@@ -429,7 +425,19 @@ public class MainActivity extends AppCompatActivity {
 
     void setAge(String age) {
         getSharedPreferences("settings", MODE_PRIVATE).edit().putString("age_group", age).apply();
-        refreshCostUI();
+
+        // Update in-memory enum
+        switch (age) {
+            case "CHILD": user_age = CHILD; break;
+            case "ADULT": user_age = ADULT; break;
+            case "ELDERLY": user_age = ELDERLY; break;
+        }
+
+        if (currentMode == Mode.TRAIN_COST) {
+            updateCostUI();
+        }
+
+        updateCostLabels();
     }
 
     String getModeLabel(Mode mode) {
@@ -699,7 +707,7 @@ public class MainActivity extends AppCompatActivity {
                 return "＊您目前是「" + ageLabel + "」，請點擊右上角地球旁的圖示以更改身份。";
             case "en":
                 ageLabel = (user_age == ADULT) ? "Adult" : (user_age == CHILD) ? "Child" : "Elderly";
-                return "*Right now you are an " + ageLabel + ". Click the icon next to the globe to change your identity.";
+                return "*Right now you are set as " + ageLabel + ". Click the icon next to the globe to change your identity.";
             case "jp":
                 ageLabel = (user_age == ADULT) ? "大人" : (user_age == CHILD) ? "子供" : "高齢者";
                 return "＊現在は「" + ageLabel + "」です。右上の地球の隣のアイコンから変更できます。";
