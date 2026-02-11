@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="ModeButton">
+        <item name="android:background">@drawable/bg_mode_button</item>
+        <item name="android:textColor">@color/custom_pink</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:minHeight">35dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+    </style>
+</resources>

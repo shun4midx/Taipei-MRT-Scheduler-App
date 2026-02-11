@@ -1,7 +1,15 @@
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/menu_age_group"
+        android:icon="@drawable/ic_age_group"
+        android:title=""
+        app:showAsAction="always" />
+
     <item
         android:id="@+id/menu_language"
-        android:title="Language"
-        android:icon="@android:drawable/ic_menu_set_as"
-        android:showAsAction="always" />
+        android:icon="@drawable/ic_language"
+        android:title=""
+        app:showAsAction="always" />
 </menu>

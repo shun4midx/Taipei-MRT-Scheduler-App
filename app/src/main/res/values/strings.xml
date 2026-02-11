@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Taipei MRT Scheduler</string>
+    <string name="repo_link"><![CDATA[<a href="https://github.com/shun4midx/Taipei-MRT-Scheduler-App">Taipei MRT Scheduler </a> made by <a href="https://github.com/shun4midx">Shun</a>]]></string>
+    <string name="copyright_notice">Made with Java coffee cups | © 2026 Shun</string>
 </resources>
