@@ -45,18 +45,26 @@ public class MainActivity extends AppCompatActivity {
 
     AgeGroup user_age = ADULT; // Assume to be adult
 
+    LinearLayout nextTrainControls;
+    LinearLayout trainCostControls;
+
     static {
         System.loadLibrary("mrt");
     }
 
     Map<String, String[]> stationsByLine = new HashMap<>();
 
+    // ===== TRAIN_COST UI =====
+    TextView costStartLabel, costEndLabel;
+    Spinner costFromLine, costFromStation;
+    Spinner costToLine, costToStation;
+    LinearLayout costTable;
+    TextView costIdentityHint;
+
     private final Handler minuteHandler =
             new Handler(Looper.getMainLooper());
 
     private Runnable minuteRunnable;
-
-    LinearLayout nextTrainControls;
 
     long millisUntilNextMinute() {
         long now = System.currentTimeMillis();
@@ -164,6 +172,8 @@ public class MainActivity extends AppCompatActivity {
         // ======== CLEAR SCREEN ======== //
         nextTrainControls = findViewById(R.id.nextTrainControls);
         nextTrainControls.setVisibility(View.GONE);
+        trainCostControls = findViewById(R.id.trainCostControls);
+        trainCostControls.setVisibility(View.GONE);
 
         // ======== SPINNER ======== //
         fromLine = findViewById(R.id.fromLine);
@@ -179,6 +189,7 @@ public class MainActivity extends AppCompatActivity {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         fromLine.setAdapter(adapter);
 
+        setupTrainCostUI(adapter);
         updateMapImage();
         setupModeButtons();
 
@@ -403,11 +414,16 @@ public class MainActivity extends AppCompatActivity {
         getSharedPreferences("settings", MODE_PRIVATE).edit().putString("lang", lang).apply();
         applyLocale(lang);
         updateFooterStatement();
-        updateMapImage();
-        refreshStationSpinner();
 
         if (currentMode == Mode.NEXT_TRAIN) {
             updateNextTrainUI();
+        }
+
+        updateCostLabels();
+        refreshStationSpinner(costFromLine, costFromStation);
+        refreshStationSpinner(costToLine, costToStation);
+        if (currentMode == Mode.TRAIN_COST) {
+            updateCostUI();
         }
     }
 
@@ -478,21 +494,34 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void updateModeUI() {
+        TextView footer = findViewById(R.id.footerStatement);
+
         switch (currentMode) {
             case NEXT_TRAIN:
-                // show arrival times
+                nextTrainControls.setVisibility(View.VISIBLE);
+                trainCostControls.setVisibility(View.GONE);
+                if (footer != null) {
+                    footer.setVisibility(View.VISIBLE);
+                }
                 break;
-            case ROUTE_PLANNER:
-                // show spinners + route results
-                break;
-            case CUSTOM_PATH:
-                // show path builder UI
-                break;
+
             case TRAIN_COST:
-                // show spinners and cost results
+                nextTrainControls.setVisibility(View.GONE);
+                trainCostControls.setVisibility(View.VISIBLE);
+                if (footer != null) {
+                    footer.setVisibility(View.GONE);
+                }
                 break;
+
+            default: // how about route planner and custom path
+                nextTrainControls.setVisibility(View.GONE);
+                trainCostControls.setVisibility(View.GONE);
+                if (footer != null) {
+                    footer.setVisibility(View.GONE);
+                }
         }
     }
+
 
     LinearLayout modeContainer;
     Mode currentMode = null;
@@ -518,17 +547,24 @@ public class MainActivity extends AppCompatActivity {
                     currentMode = null;
                     stopMinuteUpdates();
                     nextTrainControls.setVisibility(View.GONE);
+                    trainCostControls.setVisibility(View.GONE);
                     return;
                 }
 
                 currentMode = mode;
                 updateModeUI();
+                nextTrainControls.setVisibility(View.GONE);
+                trainCostControls.setVisibility(View.GONE);
                 if (mode == Mode.NEXT_TRAIN) {
                     nextTrainControls.setVisibility(View.VISIBLE);
                     updateNextTrainUI();     // immediate refresh
                     startMinuteUpdates();    // then aligned refresh
+                } else if (mode == Mode.TRAIN_COST) {
+                    trainCostControls.setVisibility(View.VISIBLE);
+                    updateCostLabels();
+                    updateCostUI();
+                    stopMinuteUpdates();
                 } else {
-                    nextTrainControls.setVisibility(View.GONE);
                     stopMinuteUpdates();
                 }
             });
@@ -625,6 +661,207 @@ public class MainActivity extends AppCompatActivity {
         return row;
     }
 
+    String getStartLabel() {
+        switch (getLanguage()) {
+            case "zh": return "起點";
+            case "en": return "Start";
+            case "jp": return "出発";
+            case "kr": return "출발";
+            default:   return "起點";
+        }
+    }
+
+    String getEndLabel() {
+        switch (getLanguage()) {
+            case "zh": return "終點";
+            case "en": return "Destination";
+            case "jp": return "到着";
+            case "kr": return "도착";
+            default:   return "終點";
+        }
+    }
+
+    String[] getFareRowLabels() {
+        switch (getLanguage()) {
+            case "zh": return new String[]{"成人", "兒童", "敬老"};
+            case "en": return new String[]{"Adult", "Child", "Elderly"};
+            case "jp": return new String[]{"大人", "子供", "高齢者"};
+            case "kr": return new String[]{"성인", "어린이", "노인"};
+            default:   return new String[]{"成人", "兒童", "敬老"};
+        }
+    }
+
+    String getIdentityHint() {
+        String ageLabel;
+        switch (getLanguage()) {
+            case "zh":
+                ageLabel = (user_age == ADULT) ? "成人" : (user_age == CHILD) ? "兒童" : "敬老";
+                return "＊您目前是「" + ageLabel + "」，請點擊右上角地球旁的圖示以更改身份。";
+            case "en":
+                ageLabel = (user_age == ADULT) ? "Adult" : (user_age == CHILD) ? "Child" : "Elderly";
+                return "*Right now you are an " + ageLabel + ". Click the icon next to the globe to change your identity.";
+            case "jp":
+                ageLabel = (user_age == ADULT) ? "大人" : (user_age == CHILD) ? "子供" : "高齢者";
+                return "＊現在は「" + ageLabel + "」です。右上の地球の隣のアイコンから変更できます。";
+            case "kr":
+                ageLabel = (user_age == ADULT) ? "성인" : (user_age == CHILD) ? "어린이" : "노인";
+                return "*현재는 " + ageLabel + "입니다. 오른쪽 위 지구 옆 아이콘에서 변경하세요.";
+            default:
+                ageLabel = (user_age == ADULT) ? "成人" : (user_age == CHILD) ? "兒童" : "敬老";
+                return "＊您目前是「" + ageLabel + "」，請點擊右上角地球旁的圖示以更改身份。";
+        }
+    }
+
+    void updateCostLabels() {
+        if (costStartLabel != null) {
+            costStartLabel.setText(getStartLabel());
+        }
+
+        if (costEndLabel != null) {
+            costEndLabel.setText(getEndLabel());
+        }
+
+        if (costIdentityHint != null) {
+            costIdentityHint.setText(getIdentityHint());
+        }
+    }
+
+    void refreshStationSpinner(Spinner lineSpinner, Spinner stationSpinner) {
+        if (lineSpinner == null || stationSpinner == null) return;
+        if (lineSpinner.getSelectedItem() == null) return;
+
+        LineItem item = (LineItem) lineSpinner.getSelectedItem();
+
+        String[] stations = getStationsDisplayList(item.code, getLanguageInt());
+
+        ArrayAdapter<String> stationAdapter =
+                new ArrayAdapter<>(this, R.layout.spinner_item_station, stations);
+
+        stationAdapter.setDropDownViewResource(R.layout.spinner_item_station);
+        stationSpinner.setAdapter(stationAdapter);
+    }
+
+    int parseStationNo(LineItem lineItem, Spinner stationSpinner) {
+        if (lineItem == null || stationSpinner == null) return -1;
+        Object obj = stationSpinner.getSelectedItem();
+        if (obj == null) return -1;
+
+        String item = (String) obj;
+        if (item.equals("––")) return -1;
+
+        // same logic you already use in NEXT_TRAIN
+        String code = item.substring(lineItem.code.length(), lineItem.code.length() + 2);
+        return Integer.parseInt(code);
+    }
+
+    void setupTrainCostUI(ArrayAdapter<LineItem> adapter) {
+        costStartLabel = findViewById(R.id.costStartLabel);
+        costEndLabel = findViewById(R.id.costEndLabel);
+
+        costFromLine = findViewById(R.id.costFromLine);
+        costFromStation = findViewById(R.id.costFromStation);
+        costToLine = findViewById(R.id.costToLine);
+        costToStation = findViewById(R.id.costToStation);
+
+        costTable = findViewById(R.id.costTable);
+        costIdentityHint = findViewById(R.id.costIdentityHint);
+
+        costFromLine.setAdapter(adapter);
+        costToLine.setAdapter(adapter);
+
+        updateCostLabels();
+
+        // init station lists
+        refreshStationSpinner(costFromLine, costFromStation);
+        refreshStationSpinner(costToLine, costToStation);
+
+        costFromLine.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+                refreshStationSpinner(costFromLine, costFromStation);
+                if (currentMode == Mode.TRAIN_COST) {
+                    updateCostUI();
+                }
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        costToLine.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+                refreshStationSpinner(costToLine, costToStation);
+                if (currentMode == Mode.TRAIN_COST) {
+                    updateCostUI();
+                }
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        AdapterView.OnItemSelectedListener stationListener = new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+                if (currentMode == Mode.TRAIN_COST) {
+                    updateCostUI();
+                }
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        };
+
+        costFromStation.setOnItemSelectedListener(stationListener);
+        costToStation.setOnItemSelectedListener(stationListener);
+    }
+
+    void updateCostUI() {
+        if (costTable == null) {
+            return;
+        }
+        costTable.removeAllViews();
+
+        if (costFromLine.getSelectedItem() == null || costToLine.getSelectedItem() == null) {
+            return;
+        }
+
+        LineItem fromL = (LineItem) costFromLine.getSelectedItem();
+        LineItem toL   = (LineItem) costToLine.getSelectedItem();
+
+        int fromSt = parseStationNo(fromL, costFromStation);
+        int toSt   = parseStationNo(toL, costToStation);
+        if (fromSt < 0 || toSt < 0) return;
+
+        // Call JNI fare function(s)
+        int adult  = getFare(fromL.code, fromSt, toL.code, toSt, ADULT.ordinal());
+        int child  = getFare(fromL.code, fromSt, toL.code, toSt, CHILD.ordinal());
+        int elderly= getFare(fromL.code, fromSt, toL.code, toSt, ELDERLY.ordinal());
+
+        String[] labels = getFareRowLabels();
+        addCostRow(labels[0], adult);
+        addCostRow(labels[1], child);
+        addCostRow(labels[2], elderly);
+
+        updateCostLabels();
+    }
+
+    void addCostRow(String label, int value) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+
+        TextView left = new TextView(this);
+        left.setText(label);
+        left.setTextSize(16);
+        left.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 2));
+        left.setTextColor(getColor(R.color.custom_pink));
+        left.setPadding(12, 10, 12, 10);
+
+        TextView right = new TextView(this);
+        right.setText("$" + value);
+        right.setTextSize(16);
+        right.setGravity(Gravity.END);
+        right.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        right.setTextColor(getColor(R.color.custom_pink));
+        right.setPadding(12, 10, 12, 10);
+
+        row.addView(left);
+        row.addView(right);
+        costTable.addView(row);
+    }
+
     @Override
     protected void onPause() {
         super.onPause();
@@ -645,4 +882,6 @@ public class MainActivity extends AppCompatActivity {
     public native LineItem[] getLines();
 
     public native String[][] getNextTrainTable(String line_code, int station, int maxRows, int maxCols, int lang);
+
+    public native int getFare(String line1, int st1, String line2, int st2, int ageGroup);
 }

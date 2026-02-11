@@ -287,3 +287,42 @@ Java_com_shun4midx_mrt_MainActivity_getNextTrainTable(JNIEnv* env, jobject, jstr
 
     return rows;
 }
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_shun4midx_mrt_MainActivity_getFare(JNIEnv* env, jobject, jstring line1_code, jint st1, jstring line2_code, jint st2, jint ageInt) {
+    const char* raw1 = env->GetStringUTFChars(line1_code, nullptr);
+    std::string code1(raw1);
+    env->ReleaseStringUTFChars(line1_code, raw1);
+
+    const char* raw2 = env->GetStringUTFChars(line2_code, nullptr);
+    std::string code2(raw2);
+    env->ReleaseStringUTFChars(line2_code, raw2);
+
+    Line l1 = LINES.at(code1);
+    Line l2 = LINES.at(code2);
+
+    Station a{l1, (int)st1};
+    Station b{l2, (int)st2};
+
+    // ticket type
+    TicketType type;
+
+    switch (ageInt) {
+        case 0: // Java CHILD
+            type = CHILD;
+            break;
+        case 1: // Java ADULT
+            type = ADULT;
+            break;
+        case 2: // Java ELDERLY
+            type = ELDERLY;
+            break;
+        default:
+            type = ADULT;
+    }
+
+    int fare = travelPrice(a, b, type);
+
+    return (jint)fare;
+}
