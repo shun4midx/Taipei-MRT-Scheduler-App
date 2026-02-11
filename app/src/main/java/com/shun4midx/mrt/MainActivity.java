@@ -56,6 +56,8 @@ public class MainActivity extends AppCompatActivity {
 
     private Runnable minuteRunnable;
 
+    LinearLayout nextTrainControls;
+
     long millisUntilNextMinute() {
         long now = System.currentTimeMillis();
         return 60_000 - (now % 60_000);
@@ -159,6 +161,10 @@ public class MainActivity extends AppCompatActivity {
         repoLink.setText(Html.fromHtml(getString(R.string.repo_link)));
         repoLink.setMovementMethod(LinkMovementMethod.getInstance());
 
+        // ======== CLEAR SCREEN ======== //
+        nextTrainControls = findViewById(R.id.nextTrainControls);
+        nextTrainControls.setVisibility(View.GONE);
+
         // ======== SPINNER ======== //
         fromLine = findViewById(R.id.fromLine);
         fromStation = findViewById(R.id.fromStation);
@@ -177,10 +183,6 @@ public class MainActivity extends AppCompatActivity {
         setupModeButtons();
 
         refreshStationSpinner();
-
-        if (currentMode == Mode.NEXT_TRAIN) {
-            fromStation.post(() -> updateNextTrainUI());
-        }
 
         // ======== LISTENER ======== //
         fromLine.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -493,7 +495,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     LinearLayout modeContainer;
-    Mode currentMode = Mode.NEXT_TRAIN;
+    Mode currentMode = null;
 
     void setupModeButtons() {
         modeContainer = findViewById(R.id.modeContainer);
@@ -511,12 +513,22 @@ public class MainActivity extends AppCompatActivity {
             btn.setPadding(25, 20, 25, 20);
 
             btn.setOnClickListener(v -> {
+                if (currentMode == mode) {
+                    // Clicking same mode again → deselect
+                    currentMode = null;
+                    stopMinuteUpdates();
+                    nextTrainControls.setVisibility(View.GONE);
+                    return;
+                }
+
                 currentMode = mode;
                 updateModeUI();
                 if (mode == Mode.NEXT_TRAIN) {
+                    nextTrainControls.setVisibility(View.VISIBLE);
                     updateNextTrainUI();     // immediate refresh
                     startMinuteUpdates();    // then aligned refresh
                 } else {
+                    nextTrainControls.setVisibility(View.GONE);
                     stopMinuteUpdates();
                 }
             });
