@@ -21,7 +21,7 @@ typedef struct routedpath {
 } RoutedPath;
 
 typedef struct routeconstraints {
-    std::vector<Station> must_stations; // ensure these are in a specific order already, and also only suggest one shortest path lol
+    std::vector<Station> must_stations;
     std::vector<Station> avoid_stations;
     std::vector<Line> avoid_lines;
     std::vector<Line> must_lines;
