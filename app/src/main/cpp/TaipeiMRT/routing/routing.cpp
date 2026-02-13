@@ -223,9 +223,23 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
         return {};
     }
 
-    q.push({src, {src}, 0});
+    // ===== checkpoint indexing =====
+    std::unordered_map<int,int> checkpoint_index;
+    for (int i = 0; i < constraints.must_stations.size(); ++i) {
+        checkpoint_index[stationKey(constraints.must_stations[i])] = i;
+    }
 
-    std::unordered_map<int, int> best_interchange;
+    int start_mask = 0;
+    int src_key = stationKey(src);
+
+    if (checkpoint_index.count(src_key)) {
+        start_mask |= (1 << checkpoint_index[src_key]);
+    }
+
+    int start_line_mask = (1 << src.line);
+    q.push({src, {src}, 0, start_mask, start_line_mask});
+
+    std::unordered_map<long long, int> best_interchange;
 
     while (!q.empty()) {
         CandState curr = q.front();
@@ -236,7 +250,20 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
         }
 
         if (sameStation(curr.stn, dst)) {
-            results.push_back(curr.path);
+
+            bool checkpoints_ok = curr.checkpoint_mask == (1 << constraints.must_stations.size()) - 1;
+
+            bool lines_ok = true;
+            for (Line l : constraints.must_lines) {
+                if (!(curr.line_mask & (1 << l))) {
+                    lines_ok = false;
+                    break;
+                }
+            }
+
+            if (checkpoints_ok && lines_ok) {
+                results.push_back(curr.path);
+            }
 
             if (results.size() >= max_paths) {
                 continue;
@@ -245,13 +272,13 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
             continue;
         }
 
-        int key = stationKey(curr.stn);
+        long long state_key = ((long long)stationKey(curr.stn) << 40) | ((long long)curr.checkpoint_mask << 20) | curr.line_mask;
 
-        if (best_interchange.count(key) && best_interchange[key] <= curr.interchange_count) {
+        if (best_interchange.count(state_key) && best_interchange[state_key] <= curr.interchange_count) {
             continue;
         }
 
-        best_interchange[key] = curr.interchange_count;
+        best_interchange[state_key] = curr.interchange_count;
 
         // Same line neighbors: +/- station number
         for (int delta: {-1, +1}) {
@@ -270,9 +297,19 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
                 continue;
             }
 
+            int new_checkpoint_mask = curr.checkpoint_mask;
+            int new_line_mask = curr.line_mask;
+
+            int next_key = stationKey(next);
+            if (checkpoint_index.count(next_key)) {
+                new_checkpoint_mask |= (1 << checkpoint_index[next_key]);
+            }
+
+            new_line_mask |= (1 << next.line);
+
             Path np = curr.path;
             np.push_back(next);
-            q.push({next, np, curr.interchange_count});
+            q.push({next, np, curr.interchange_count, new_checkpoint_mask, new_line_mask});
         }
 
         // Edge case for O line
@@ -288,9 +325,19 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
                 continue;
             }
 
+            int new_checkpoint_mask = curr.checkpoint_mask;
+            int new_line_mask = curr.line_mask;
+
+            int next_key = stationKey(next);
+            if (checkpoint_index.count(next_key)) {
+                new_checkpoint_mask |= (1 << checkpoint_index[next_key]);
+            }
+
+            new_line_mask |= (1 << next.line);
+
             Path np = curr.path;
             np.push_back(next);
-            q.push({next, np, curr.interchange_count});
+            q.push({next, np, curr.interchange_count, new_checkpoint_mask, new_line_mask});
         }
 
         // Interchange neighbors
@@ -307,9 +354,19 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
                     continue;
                 }
 
+                int new_checkpoint_mask = curr.checkpoint_mask;
+                int new_line_mask = curr.line_mask;
+
+                int next_key = stationKey(to);
+                if (checkpoint_index.count(next_key)) {
+                    new_checkpoint_mask |= (1 << checkpoint_index[next_key]);
+                }
+
+                new_line_mask |= (1 << to.line);
+
                 Path np = curr.path;
                 np.push_back(to);
-                q.push({to, np, curr.interchange_count + 1});
+                q.push({to, np, curr.interchange_count + 1, new_checkpoint_mask, new_line_mask});
             }
         } catch (...) {
             // No transfers or invalid transfer table -> ignore
@@ -351,125 +408,8 @@ std::vector<RoutedPath> routeCustom(const Station& src, const Station& dst, Time
                 }};
     }
 
-    // If must_pass exists, we do segmented routing:
-    // src -> via1 -> via2 -> ... -> dst
-    // Each segment uses the same constraints (avoid rules apply), and time advances along the segments.
-    if (!constraints.must_stations.empty()) {
-        Station cur = src;
-        Time t = curr_time;
-
-        std::vector<RoutedPath> partials;
-        std::vector<Station> checkpoints = constraints.must_stations;
-
-        // initial empty partial
-        partials.push_back(RoutedPath{
-                .path = {src},
-                .times = {{curr_time, curr_time}},
-                .total_mins = 0,
-                .interchange_count = 0
-        });
-
-        PathTimes full_times; // optional: we'll re-evaluate full_path at the end for a clean timeline
-
-        checkpoints.push_back(dst);
-
-        while (checkpoints.size() != 0) {
-            Station target = checkpoints.front();
-
-            std::vector<RoutedPath> next_partials;
-
-            for (const RoutedPath& base : partials) {
-                if (sameStation(base.path.back(), target)) {
-                    next_partials.push_back(base);
-                    continue;
-                }
-
-                RouteConstraints segc = constraints;
-                segc.must_lines.clear(); // global constraint
-                segc.must_stations = checkpoints;
-
-                auto segs = routeEngine(base.path.back(), target, base.times.back().first, day_type, segc, k, 6, 100);
-
-                for (const RoutedPath& seg : segs) {
-                    RoutedPath combined;
-                    combined.path = mergePaths(base.path, simplifyPath(seg.path, segc));
-                    combined.times = seg.times; // OK: final ETA recomputed later
-                    combined.total_mins = timeToMins(seg.times.back().first) - timeToMins(curr_time);
-                    combined.interchange_count = countInterchanges(combined.path);
-
-                    next_partials.push_back(combined);
-                }
-            }
-
-            if (next_partials.empty()) {
-                return {};
-            }
-
-            // Beam prune
-            std::sort(next_partials.begin(), next_partials.end(),
-                      [&](const RoutedPath& a, const RoutedPath& b) {
-                          return betterThan(a, b, constraints);
-                      }
-            );
-
-            int beam = std::max(k * 5, 10);     // tune
-            if ((int)next_partials.size() > beam) {
-                next_partials.resize(beam);
-            }
-
-            partials = std::move(next_partials);
-
-            checkpoints.erase(checkpoints.begin()); // Remove one at a time so we don't waste time on unnecessarily stopping at checkpoints if we stopped before
-        }
-
-        partials.erase(
-                std::remove_if(partials.begin(), partials.end(),
-                               [&](const RoutedPath& rp) {
-                                   for (Line l : constraints.must_lines)
-                                       if (!usesLine(rp.path, l)) return true;
-                                   return false;
-                               }),
-                partials.end()
-        );
-
-        // Return results
-        std::vector<RoutedPath> results;
-
-        for (auto& cand : partials) {
-            try {
-                PathTimes pt = pathETA(cand.path, curr_time, day_type);
-
-                RoutedPath rp;
-                rp.path = cand.path;
-                rp.times = pt;
-                rp.total_mins = timeToMins(pt.back().first) - timeToMins(curr_time);
-                rp.interchange_count = countInterchanges(cand.path);
-
-                results.push_back(rp);
-            } catch (...) {
-                // this candidate is infeasible in real time -> discard
-            }
-        }
-
-        if (results.empty()) {
-            return {};
-        }
-
-        std::sort(results.begin(), results.end(),
-                  [&](const RoutedPath& a, const RoutedPath& b) {
-                      return betterThan(a, b, constraints);
-                  }
-        );
-
-        if (results.size() > k) {
-            results.resize(k);
-        }
-
-        return results;
-    }
-
-    // No must_pass: run normally with adaptive widening
-    return routeEngine(src, dst, curr_time, day_type, constraints, k, 6, 100);
+    // With bitmask-based candidatePaths, no segmentation needed.
+    return routeEngine(src, dst, curr_time, day_type,constraints, k, 6, 100);
 }
 
 // ======== CORE ========= //

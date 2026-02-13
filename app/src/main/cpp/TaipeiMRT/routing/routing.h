@@ -40,6 +40,8 @@ typedef struct candstate {
     Station stn;
     Path path;
     int interchange_count;
+    int checkpoint_mask;
+    int line_mask;
 } CandState;
 
 // ======== HELPERS ======== //
