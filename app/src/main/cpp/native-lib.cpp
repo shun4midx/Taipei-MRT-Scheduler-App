@@ -326,3 +326,111 @@ Java_com_shun4midx_mrt_MainActivity_getFare(JNIEnv* env, jobject, jstring line1_
 
     return (jint)fare;
 }
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_com_shun4midx_mrt_MainActivity_computeFastestRoute(JNIEnv* env, jobject, jstring line1_code, jint st1, jstring line2_code, jint st2, jint langInt, jint ticketInt) {
+
+    const char* raw1 = env->GetStringUTFChars(line1_code, nullptr);
+    std::string code1(raw1);
+    env->ReleaseStringUTFChars(line1_code, raw1);
+
+    const char* raw2 = env->GetStringUTFChars(line2_code, nullptr);
+    std::string code2(raw2);
+    env->ReleaseStringUTFChars(line2_code, raw2);
+
+    Line l1 = LINES.at(code1);
+    Line l2 = LINES.at(code2);
+
+    Station src{l1, (int)st1};
+    Station dst{l2, (int)st2};
+
+    Language lang = static_cast<Language>(langInt);
+
+    // ticket type
+    TicketType type;
+
+    switch (ticketInt) {
+        case 0: // Java CHILD
+            type = CHILD;
+            break;
+        case 1: // Java ADULT
+            type = ADULT;
+            break;
+        case 2: // Java ELDERLY
+            type = ELDERLY;
+            break;
+        default:
+            type = ADULT;
+    }
+
+    int day_type, now_mins;
+    getTaipeiTime(&day_type, &now_mins);
+
+    std::vector<RoutedPath> results = routeDefault(src, dst, Time{now_mins / 60, now_mins % 60}, day_type, 3);
+
+    std::string output;
+
+    for (const auto& rp : results) {
+        output += pathDetailsToUser(rp.path, Time{now_mins / 60, now_mins % 60}, day_type, lang, type);
+        output += "\n\n";
+    }
+
+    return env->NewStringUTF(output.c_str());
+}
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_com_shun4midx_mrt_MainActivity_computeLeastInterchangeRoute(JNIEnv* env, jobject, jstring line1_code, jint st1, jstring line2_code, jint st2, jint langInt, jint ticketInt) {
+
+    const char* raw1 = env->GetStringUTFChars(line1_code, nullptr);
+    std::string code1(raw1);
+    env->ReleaseStringUTFChars(line1_code, raw1);
+
+    const char* raw2 = env->GetStringUTFChars(line2_code, nullptr);
+    std::string code2(raw2);
+    env->ReleaseStringUTFChars(line2_code, raw2);
+
+    Line l1 = LINES.at(code1);
+    Line l2 = LINES.at(code2);
+
+    Station src{l1, (int)st1};
+    Station dst{l2, (int)st2};
+
+    Language lang = static_cast<Language>(langInt);
+
+    // ticket type
+    TicketType type;
+
+    switch (ticketInt) {
+        case 0: // Java CHILD
+            type = CHILD;
+            break;
+        case 1: // Java ADULT
+            type = ADULT;
+            break;
+        case 2: // Java ELDERLY
+            type = ELDERLY;
+            break;
+        default:
+            type = ADULT;
+    }
+
+    int day_type, now_mins;
+    getTaipeiTime(&day_type, &now_mins);
+
+    std::vector<RoutedPath> results = routeLeastInterchange(src, dst, Time{now_mins / 60, now_mins % 60}, day_type, 3);
+
+    std::string output;
+
+    for (const auto& rp : results) {
+        output += pathDetailsToUser(rp.path, Time{now_mins / 60, now_mins % 60}, day_type, lang, type);
+        output += "\n\n";
+    }
+
+    if (output.size() > 0) {
+        output.pop_back();
+    }
+
+    return env->NewStringUTF(output.c_str());
+}

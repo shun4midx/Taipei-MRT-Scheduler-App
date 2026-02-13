@@ -17,7 +17,7 @@ const std::unordered_map<Line, std::vector<int>> LINE_PREFIX_DURATION = {
     // Red line
     {R, {
         INVALID_DURATION, INVALID_DURATION,
-        0, 2, 4, 6, 8, 19, 13, 15, // R02-09
+        0, 2, 4, 6, 8, 9, 13, 15, // R02-09
         17, 18, 20, 21, 23, 26, 28, 30, 31, 33, // R10-19
         35, 37, 39, 41, 44, 45, 48, 51, 54 // R20-28
     }},

@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -39,6 +40,12 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+enum RouteStrategy {
+    FASTEST,
+    LEAST_INTERCHANGE,
+    CUSTOM
+}
+
 public class MainActivity extends AppCompatActivity {
     Spinner fromLine;
     Spinner fromStation;
@@ -53,6 +60,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     Map<String, String[]> stationsByLine = new HashMap<>();
+
+    // ===== ROUTE PLANNER UI =====
+    LinearLayout routePlannerControls;
+    TextView routeStartLabel, routeEndLabel;
+    Spinner routeFromLine, routeFromStation;
+    Spinner routeToLine, routeToStation;
+    LinearLayout customControls;
+    RouteStrategy currentStrategy = null;
+    LinearLayout routeStrategyContainer;
+
+    TextView customConstraintsLabel;
 
     // ===== TRAIN_COST UI =====
     TextView costStartLabel, costEndLabel;
@@ -190,6 +208,7 @@ public class MainActivity extends AppCompatActivity {
         fromLine.setAdapter(adapter);
 
         setupTrainCostUI(adapter);
+        setupRoutePlannerUI(adapter);
         updateMapImage();
         setupModeButtons();
 
@@ -415,12 +434,55 @@ public class MainActivity extends AppCompatActivity {
             updateNextTrainUI();
         }
 
+        updateRoutePlannerLabels();
+        setupRouteStrategyButtons();
+        updateRouteStrategyUI();
         updateCostLabels();
         refreshStationSpinner(costFromLine, costFromStation);
         refreshStationSpinner(costToLine, costToStation);
         if (currentMode == Mode.TRAIN_COST) {
             updateCostUI();
         }
+        resetRoutePlannerState();
+    }
+
+    void clearRouteResult() {
+        LinearLayout container = findViewById(R.id.routeResultContainer);
+        if (container != null) {
+            container.removeAllViews();
+        }
+    }
+
+    void resetRoutePlannerState() {
+
+        // Clear selected strategy
+        currentStrategy = null;
+        updateRouteStrategyUI();
+
+        // Reset spinners to first item
+        if (routeFromLine != null) {
+            routeFromLine.setSelection(0);
+        }
+        if (routeToLine != null) {
+            routeToLine.setSelection(0);
+        }
+
+        refreshStationSpinner(routeFromLine, routeFromStation);
+        refreshStationSpinner(routeToLine, routeToStation);
+
+        if (currentMode == Mode.ROUTE_PLANNER) {
+            recomputeRoutePlanner();
+        }
+
+        if (routeFromStation != null) {
+            routeFromStation.setSelection(0);
+        }
+        if (routeToStation != null) {
+            routeToStation.setSelection(0);
+        }
+
+        // Clear result container
+        clearRouteResult();
     }
 
     void setAge(String age) {
@@ -433,11 +495,49 @@ public class MainActivity extends AppCompatActivity {
             case "ELDERLY": user_age = ELDERLY; break;
         }
 
-        if (currentMode == Mode.TRAIN_COST) {
+        if (currentMode == Mode.ROUTE_PLANNER) {
+            recomputeRoutePlanner();
+        } else if (currentMode == Mode.TRAIN_COST) {
             updateCostUI();
         }
 
         updateCostLabels();
+    }
+
+    void recomputeRoutePlanner() {
+
+        if (currentStrategy == null) {
+            clearRouteResult();
+            return;
+        }
+
+        if (currentMode != Mode.ROUTE_PLANNER) {
+            return;
+        }
+
+        LineItem fromL = (LineItem) routeFromLine.getSelectedItem();
+        LineItem toL   = (LineItem) routeToLine.getSelectedItem();
+
+        int fromSt = parseStationNo(fromL, routeFromStation);
+        int toSt   = parseStationNo(toL, routeToStation);
+
+        if (fromSt < 0 || toSt < 0) {
+            clearRouteResult();
+            return;
+        }
+
+        String result;
+
+        if (currentStrategy == RouteStrategy.FASTEST) {
+            result = computeFastestRoute(fromL.code, fromSt, toL.code, toSt, getLanguageInt(), user_age.ordinal());
+        } else if (currentStrategy == RouteStrategy.LEAST_INTERCHANGE) {
+            result = computeLeastInterchangeRoute(fromL.code, fromSt, toL.code, toSt, getLanguageInt(), user_age.ordinal());
+        } else {
+            clearRouteResult();
+            return;
+        }
+
+        displayRouteResult(result);
     }
 
     String getModeLabel(Mode mode) {
@@ -507,14 +607,23 @@ public class MainActivity extends AppCompatActivity {
         switch (currentMode) {
             case NEXT_TRAIN:
                 nextTrainControls.setVisibility(View.VISIBLE);
+                routePlannerControls.setVisibility(View.GONE);
                 trainCostControls.setVisibility(View.GONE);
                 if (footer != null) {
                     footer.setVisibility(View.VISIBLE);
                 }
                 break;
 
+            case ROUTE_PLANNER:
+                nextTrainControls.setVisibility(View.GONE);
+                routePlannerControls.setVisibility(View.VISIBLE);
+                trainCostControls.setVisibility(View.GONE);
+                if (footer != null) footer.setVisibility(View.GONE);
+                break;
+
             case TRAIN_COST:
                 nextTrainControls.setVisibility(View.GONE);
+                routePlannerControls.setVisibility(View.GONE);
                 trainCostControls.setVisibility(View.VISIBLE);
                 if (footer != null) {
                     footer.setVisibility(View.GONE);
@@ -523,6 +632,7 @@ public class MainActivity extends AppCompatActivity {
 
             default: // how about route planner and custom path
                 nextTrainControls.setVisibility(View.GONE);
+                routePlannerControls.setVisibility(View.GONE);
                 trainCostControls.setVisibility(View.GONE);
                 if (footer != null) {
                     footer.setVisibility(View.GONE);
@@ -816,6 +926,213 @@ public class MainActivity extends AppCompatActivity {
         costToStation.setOnItemSelectedListener(stationListener);
     }
 
+    void setupRoutePlannerUI(ArrayAdapter<LineItem> adapter) {
+
+        routePlannerControls = findViewById(R.id.routePlannerControls);
+
+        routeStartLabel = findViewById(R.id.routeStartLabel);
+        routeEndLabel   = findViewById(R.id.routeEndLabel);
+
+        routeFromLine = findViewById(R.id.routeFromLine);
+        routeFromStation = findViewById(R.id.routeFromStation);
+
+        routeToLine = findViewById(R.id.routeToLine);
+        routeToStation = findViewById(R.id.routeToStation);
+
+        customControls = findViewById(R.id.customControls);
+
+        customConstraintsLabel = findViewById(R.id.customConstraintsLabel);
+
+        routeStrategyContainer = findViewById(R.id.routeStrategyContainer);
+
+        routeFromLine.setAdapter(adapter);
+        routeToLine.setAdapter(adapter);
+
+        refreshStationSpinner(routeFromLine, routeFromStation);
+        refreshStationSpinner(routeToLine, routeToStation);
+
+        setupRouteStrategyButtons();
+        updateRoutePlannerLabels();
+
+        routeFromLine.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+                refreshStationSpinner(routeFromLine, routeFromStation);
+
+                // Immediately clear result
+                clearRouteResult();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        routeToLine.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+                refreshStationSpinner(routeToLine, routeToStation);
+
+                // Immediately clear result
+                clearRouteResult();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        AdapterView.OnItemSelectedListener routeStationListener =
+                new AdapterView.OnItemSelectedListener() {
+                    @Override
+                    public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+                        if (currentMode == Mode.ROUTE_PLANNER) {
+                            recomputeRoutePlanner();
+                        }
+                    }
+
+                    @Override
+                    public void onNothingSelected(AdapterView<?> parent) {}
+                };
+
+        routeFromStation.setOnItemSelectedListener(routeStationListener);
+        routeToStation.setOnItemSelectedListener(routeStationListener);
+    }
+
+    void setupRouteStrategyButtons() {
+
+        routeStrategyContainer.removeAllViews();
+
+        for (RouteStrategy strategy : RouteStrategy.values()) {
+
+            Button btn = new Button(this, null, 0, R.style.ModeButton);
+
+            btn.setText(getStrategyLabel(strategy));
+            btn.setTypeface(btn.getTypeface(), android.graphics.Typeface.BOLD);
+            btn.setGravity(Gravity.CENTER);
+            btn.setMinHeight(0);
+            btn.setIncludeFontPadding(false);
+            btn.setBackgroundResource(R.drawable.mode_button_selector);
+            btn.setPadding(25, 20, 25, 20);
+
+            btn.setSelected(strategy == currentStrategy);
+
+            btn.setOnClickListener(v -> {
+
+                currentStrategy = strategy;
+                updateRouteStrategyUI();
+
+                LineItem fromL = (LineItem) routeFromLine.getSelectedItem();
+                LineItem toL   = (LineItem) routeToLine.getSelectedItem();
+
+                int fromSt = parseStationNo(fromL, routeFromStation);
+                int toSt   = parseStationNo(toL, routeToStation);
+
+                if (fromSt < 0 || toSt < 0) return;
+
+                String result;
+
+                if (currentStrategy == RouteStrategy.FASTEST) {
+                    result = computeFastestRoute(fromL.code, fromSt, toL.code, toSt, getLanguageInt(), user_age.ordinal());
+                } else if (currentStrategy == RouteStrategy.LEAST_INTERCHANGE) {
+                    result = computeLeastInterchangeRoute(fromL.code, fromSt, toL.code, toSt, getLanguageInt(), user_age.ordinal());
+                } else {
+                    clearRouteResult();
+                    return; // ignore custom for now
+                }
+
+                displayRouteResult(result);
+            });
+
+            LinearLayout.LayoutParams lp =
+                    new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                    );
+
+            lp.setMargins(10, 0, 10, 0);
+            btn.setLayoutParams(lp);
+
+            routeStrategyContainer.addView(btn);
+        }
+    }
+
+    void updateRouteStrategyUI() {
+
+        for (int i = 0; i < routeStrategyContainer.getChildCount(); ++i) {
+            View v = routeStrategyContainer.getChildAt(i);
+            if (v instanceof Button) {
+                Button b = (Button) v;
+                RouteStrategy strategy = RouteStrategy.values()[i];
+                b.setSelected(strategy == currentStrategy);
+            }
+        }
+
+        if (currentStrategy == RouteStrategy.CUSTOM) {
+            customControls.setVisibility(View.VISIBLE);
+        } else {
+            customControls.setVisibility(View.GONE);
+        }
+    }
+
+    void updateRoutePlannerLabels() {
+
+        if (routeStartLabel != null) {
+            routeStartLabel.setText(getStartLabel());
+        }
+
+        if (routeEndLabel != null) {
+            routeEndLabel.setText(getEndLabel());
+        }
+
+        if (customConstraintsLabel != null) {
+            customConstraintsLabel.setText(getCustomConstraintsLabel());
+        }
+    }
+
+    String getStrategyLabel(RouteStrategy strategy) {
+        switch (getLanguage()) {
+
+            case "zh":
+                switch (strategy) {
+                    case FASTEST: return "最快";
+                    case LEAST_INTERCHANGE: return "最少轉乘";
+                    case CUSTOM: return "自訂";
+                }
+
+            case "en":
+                switch (strategy) {
+                    case FASTEST: return "Fastest";
+                    case LEAST_INTERCHANGE: return "Least Transfers";
+                    case CUSTOM: return "Custom";
+                }
+
+            case "jp":
+                switch (strategy) {
+                    case FASTEST: return "最速";
+                    case LEAST_INTERCHANGE: return "最少乗換";
+                    case CUSTOM: return "カスタム";
+                }
+
+            case "kr":
+                switch (strategy) {
+                    case FASTEST: return "최단 시간";
+                    case LEAST_INTERCHANGE: return "최소 환승";
+                    case CUSTOM: return "사용자 지정";
+                }
+        }
+
+        return "";
+    }
+
+    String getCustomConstraintsLabel() {
+        switch (getLanguage()) {
+            case "zh": return "自訂條件";
+            case "en": return "Custom Constraints";
+            case "jp": return "カスタム条件";
+            case "kr": return "사용자 지정 조건";
+            default: return "自訂條件";
+        }
+    }
+
     void updateCostUI() {
         if (costTable == null) {
             return;
@@ -870,6 +1187,20 @@ public class MainActivity extends AppCompatActivity {
         costTable.addView(row);
     }
 
+    void displayRouteResult(String result) {
+
+        LinearLayout container = findViewById(R.id.routeResultContainer);
+        container.removeAllViews();
+
+        TextView tv = new TextView(this);
+        tv.setText(result);
+        tv.setTextColor(getColor(R.color.custom_pink));
+        tv.setTextSize(16);
+        tv.setPadding(12, 12, 12, 12);
+
+        container.addView(tv);
+    }
+
     @Override
     protected void onPause() {
         super.onPause();
@@ -892,4 +1223,7 @@ public class MainActivity extends AppCompatActivity {
     public native String[][] getNextTrainTable(String line_code, int station, int maxRows, int maxCols, int lang);
 
     public native int getFare(String line1, int st1, String line2, int st2, int ageGroup);
+
+    public native String computeFastestRoute(String fromLine, int fromStation, String toLine, int toStation, int lang, int ticketType);
+    public native String computeLeastInterchangeRoute(String fromLine, int fromStation, String toLine, int toStation, int lang, int ticketType);
 }

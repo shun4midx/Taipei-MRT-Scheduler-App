@@ -97,6 +97,104 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/routePlannerControls"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <!-- Start -->
+                <TextView
+                    android:id="@+id/routeStartLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="起點"
+                    android:textStyle="bold"
+                    android:layout_marginTop="10dp"/>
+
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <Spinner
+                        android:id="@+id/routeFromLine"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"/>
+
+                    <Spinner
+                        android:id="@+id/routeFromStation"
+                        android:layout_width="0dp"
+                        android:layout_weight="3"
+                        android:layout_height="wrap_content"/>
+                </LinearLayout>
+
+                <!-- Destination -->
+                <TextView
+                    android:id="@+id/routeEndLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="終點"
+                    android:textStyle="bold"
+                    android:layout_marginTop="12dp"/>
+
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <Spinner
+                        android:id="@+id/routeToLine"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"/>
+
+                    <Spinner
+                        android:id="@+id/routeToStation"
+                        android:layout_width="0dp"
+                        android:layout_weight="3"
+                        android:layout_height="wrap_content"/>
+                </LinearLayout>
+
+                <!-- Strategy buttons -->
+                <LinearLayout
+                    android:id="@+id/routeStrategyContainer"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="8dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center">
+
+                    <!-- Insert buttons via code -->
+                </LinearLayout>
+
+                <!-- Custom controls -->
+                <LinearLayout
+                    android:id="@+id/customControls"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    android:layout_marginTop="8dp">
+
+                    <TextView
+                        android:id="@+id/customConstraintsLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textStyle="bold"
+                        android:layout_marginTop="12dp"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/routeResultContainer"
+                    android:orientation="vertical"
+                    android:layout_marginTop="8dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"/>
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/trainCostControls"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
