@@ -452,6 +452,13 @@ public class MainActivity extends AppCompatActivity {
         updateManualLabels();
         refreshStationSpinner(costFromLine, costFromStation);
         refreshStationSpinner(costToLine, costToStation);
+        for (StationRow row : mustStationRows) {
+            refreshStationSpinner(row.lineSpinner, row.stationSpinner);
+        }
+        for (StationRow row : avoidStationRows) {
+            refreshStationSpinner(row.lineSpinner, row.stationSpinner);
+        }
+
         if (currentMode == Mode.TRAIN_COST) {
             updateCostUI();
         }
@@ -1289,30 +1296,9 @@ public class MainActivity extends AppCompatActivity {
             btn.setSelected(strategy == currentStrategy);
 
             btn.setOnClickListener(v -> {
-
                 currentStrategy = strategy;
                 updateRouteStrategyUI();
-
-                LineItem fromL = (LineItem) routeFromLine.getSelectedItem();
-                LineItem toL   = (LineItem) routeToLine.getSelectedItem();
-
-                int fromSt = parseStationNo(fromL, routeFromStation);
-                int toSt   = parseStationNo(toL, routeToStation);
-
-                if (fromSt < 0 || toSt < 0) return;
-
-                String result;
-
-                if (currentStrategy == RouteStrategy.FASTEST) {
-                    result = computeFastestRoute(fromL.code, fromSt, toL.code, toSt, getLanguageInt(), user_age.ordinal());
-                } else if (currentStrategy == RouteStrategy.LEAST_INTERCHANGE) {
-                    result = computeLeastInterchangeRoute(fromL.code, fromSt, toL.code, toSt, getLanguageInt(), user_age.ordinal());
-                } else {
-                    clearRouteResult();
-                    return; // ignore custom for now
-                }
-
-                displayRouteResult(result);
+                recomputeRoutePlanner();
             });
 
             LinearLayout.LayoutParams lp =

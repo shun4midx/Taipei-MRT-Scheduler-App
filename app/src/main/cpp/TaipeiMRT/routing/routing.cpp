@@ -239,7 +239,7 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
     int start_line_mask = (1 << src.line);
     q.push({src, {src}, 0, start_mask, start_line_mask});
 
-    std::unordered_map<long long, int> best_interchange;
+    std::unordered_map<long long, int> best_seen;
 
     while (!q.empty()) {
         CandState curr = q.front();
@@ -250,6 +250,9 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
         }
 
         if (sameStation(curr.stn, dst)) {
+            if ((int)results.size() >= max_paths) {
+                continue;
+            }
 
             bool checkpoints_ok = curr.checkpoint_mask == (1 << constraints.must_stations.size()) - 1;
 
@@ -274,11 +277,16 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
 
         long long state_key = ((long long)stationKey(curr.stn) << 40) | ((long long)curr.checkpoint_mask << 20) | curr.line_mask;
 
-        if (best_interchange.count(state_key) && best_interchange[state_key] <= curr.interchange_count) {
-            continue;
+        auto it = best_seen.find(state_key);
+        if (it != best_seen.end()) {
+            int best_inter = it->second;
+            if (best_inter <= curr.interchange_count) {
+                continue;
+            }
         }
 
-        best_interchange[state_key] = curr.interchange_count;
+        // Store best interchange only
+        best_seen[state_key] = curr.interchange_count;
 
         // Same line neighbors: +/- station number
         for (int delta: {-1, +1}) {
@@ -293,18 +301,13 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
             }
 
             // Avoid cycles
-            if (stationInList(next, curr.path)) {
-                continue;
-            }
-
             int new_checkpoint_mask = curr.checkpoint_mask;
-            int new_line_mask = curr.line_mask;
-
             int next_key = stationKey(next);
             if (checkpoint_index.count(next_key)) {
                 new_checkpoint_mask |= (1 << checkpoint_index[next_key]);
             }
 
+            int new_line_mask = curr.line_mask;
             new_line_mask |= (1 << next.line);
 
             Path np = curr.path;
@@ -315,25 +318,17 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
         // Edge case for O line
         if (sameStation(curr.stn, Station{O, 12})) {
             Station next{O, 50};
-
             if (!validStation(next) || forbiddenStation(next, constraints)) {
                 continue;
             }
 
-            // Avoid cycles
-            if (stationInList(next, curr.path)) {
-                continue;
-            }
+            int new_line_mask = curr.line_mask | (1 << next.line);
 
             int new_checkpoint_mask = curr.checkpoint_mask;
-            int new_line_mask = curr.line_mask;
-
             int next_key = stationKey(next);
             if (checkpoint_index.count(next_key)) {
                 new_checkpoint_mask |= (1 << checkpoint_index[next_key]);
             }
-
-            new_line_mask |= (1 << next.line);
 
             Path np = curr.path;
             np.push_back(next);
@@ -350,24 +345,18 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
                 }
 
                 // Avoid cycles
-                if (stationInList(to, curr.path)) {
-                    continue;
-                }
-
                 int new_checkpoint_mask = curr.checkpoint_mask;
-                int new_line_mask = curr.line_mask;
-
                 int next_key = stationKey(to);
                 if (checkpoint_index.count(next_key)) {
                     new_checkpoint_mask |= (1 << checkpoint_index[next_key]);
                 }
 
-                new_line_mask |= (1 << to.line);
+                int new_line_mask = curr.line_mask | (1 << to.line);
 
                 Path np = curr.path;
                 np.push_back(to);
                 q.push({to, np, curr.interchange_count + 1, new_checkpoint_mask, new_line_mask});
-            }
+           }
         } catch (...) {
             // No transfers or invalid transfer table -> ignore
         }
