@@ -92,6 +92,10 @@ public class MainActivity extends AppCompatActivity {
     LinearLayout avoidLinesContainer;
     List<CheckBox> avoidLineChecks = new ArrayList<>();
 
+    // ===== CUSTOM PATH UI =====
+    LinearLayout manualPathControls;
+    List<StationRow> customPathRows = new ArrayList<>();
+
     // ===== TRAIN_COST UI =====
     TextView costStartLabel, costEndLabel;
     Spinner costFromLine, costFromStation;
@@ -210,6 +214,8 @@ public class MainActivity extends AppCompatActivity {
         // ======== CLEAR SCREEN ======== //
         nextTrainControls = findViewById(R.id.nextTrainControls);
         nextTrainControls.setVisibility(View.GONE);
+        manualPathControls = findViewById(R.id.manualPathControls);
+        manualPathControls.setVisibility(View.GONE);
         trainCostControls = findViewById(R.id.trainCostControls);
         trainCostControls.setVisibility(View.GONE);
 
@@ -229,6 +235,7 @@ public class MainActivity extends AppCompatActivity {
 
         setupTrainCostUI(adapter);
         setupRoutePlannerUI(adapter);
+        setupManualPathUI();
         updateMapImage();
         setupModeButtons();
 
@@ -390,23 +397,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    void recomputeCurrentResult() {
-        switch (currentMode) {
-            case ROUTE_PLANNER:
-//                recomputeRoutePlanner();
-                break;
-            case CUSTOM_PATH:
-//                recomputeCustomPath();
-                break;
-            case TRAIN_COST:
-//                recomputeFareOnly();
-                break;
-            case NEXT_TRAIN:
-                // age probably irrelevant here
-                break;
-        }
-    }
-
     void applyLocale(String lang) {
         Locale locale = new Locale(lang);
         Locale.setDefault(locale);
@@ -459,12 +449,14 @@ public class MainActivity extends AppCompatActivity {
         setupRouteStrategyButtons();
         updateRouteStrategyUI();
         updateCostLabels();
+        updateManualLabels();
         refreshStationSpinner(costFromLine, costFromStation);
         refreshStationSpinner(costToLine, costToStation);
         if (currentMode == Mode.TRAIN_COST) {
             updateCostUI();
         }
         resetRoutePlannerState();
+        resetManualPathState();
     }
 
     void clearRouteResult() {
@@ -506,6 +498,23 @@ public class MainActivity extends AppCompatActivity {
         clearRouteResult();
     }
 
+    void resetManualPathState() {
+
+        for (StationRow row : customPathRows) {
+
+            if (row.lineSpinner != null) {
+                row.lineSpinner.setSelection(0);
+            }
+
+            if (row.stationSpinner != null) {
+                refreshStationSpinner(row.lineSpinner, row.stationSpinner);
+                row.stationSpinner.setSelection(0);
+            }
+        }
+
+        displayManualResult("");
+    }
+
     void setAge(String age) {
         getSharedPreferences("settings", MODE_PRIVATE).edit().putString("age_group", age).apply();
 
@@ -520,6 +529,8 @@ public class MainActivity extends AppCompatActivity {
             recomputeRoutePlanner();
         } else if (currentMode == Mode.TRAIN_COST) {
             updateCostUI();
+        } else if (currentMode == Mode.CUSTOM_PATH) {
+            recomputeManualPath();
         }
 
         updateCostLabels();
@@ -646,6 +657,7 @@ public class MainActivity extends AppCompatActivity {
             case NEXT_TRAIN:
                 nextTrainControls.setVisibility(View.VISIBLE);
                 routePlannerControls.setVisibility(View.GONE);
+                manualPathControls.setVisibility(View.GONE);
                 trainCostControls.setVisibility(View.GONE);
                 if (footer != null) {
                     footer.setVisibility(View.VISIBLE);
@@ -655,13 +667,27 @@ public class MainActivity extends AppCompatActivity {
             case ROUTE_PLANNER:
                 nextTrainControls.setVisibility(View.GONE);
                 routePlannerControls.setVisibility(View.VISIBLE);
+                manualPathControls.setVisibility(View.GONE);
                 trainCostControls.setVisibility(View.GONE);
-                if (footer != null) footer.setVisibility(View.GONE);
+                if (footer != null) {
+                    footer.setVisibility(View.GONE);
+                }
+                break;
+
+            case CUSTOM_PATH:
+                nextTrainControls.setVisibility(View.GONE);
+                routePlannerControls.setVisibility(View.GONE);
+                trainCostControls.setVisibility(View.GONE);
+                manualPathControls.setVisibility(View.VISIBLE);
+                if (footer != null) {
+                    footer.setVisibility(View.GONE);
+                }
                 break;
 
             case TRAIN_COST:
                 nextTrainControls.setVisibility(View.GONE);
                 routePlannerControls.setVisibility(View.GONE);
+                manualPathControls.setVisibility(View.GONE);
                 trainCostControls.setVisibility(View.VISIBLE);
                 if (footer != null) {
                     footer.setVisibility(View.GONE);
@@ -703,6 +729,8 @@ public class MainActivity extends AppCompatActivity {
                     currentMode = null;
                     stopMinuteUpdates();
                     nextTrainControls.setVisibility(View.GONE);
+                    routePlannerControls.setVisibility(View.GONE);
+                    manualPathControls.setVisibility(View.GONE);
                     trainCostControls.setVisibility(View.GONE);
                     return;
                 }
@@ -800,22 +828,186 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    void setupManualPathUI() {
 
-    View makeRow(String[] times) {
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_HORIZONTAL);
+        Button addBtn = findViewById(R.id.addCustomStationBtn);
+        Button applyBtn = findViewById(R.id.applyManualPathBtn);
 
-        for (String t : times) {
-            TextView tv = new TextView(this);
-            tv.setText(t);
-            tv.setPadding(16, 8, 16, 8);
-            tv.setTextSize(14);
-            row.addView(tv);
+        addBtn.setText(getAddStationLabel());
+        applyBtn.setText(getApplyCustomLabel());
+
+        addBtn.setOnClickListener(v -> addCustomPathRow());
+        applyBtn.setOnClickListener(v -> applyManualPath());
+
+        // Auto add two rows
+        addCustomPathRow();
+        addCustomPathRow();
+    }
+
+    void applyManualPath() {
+
+        List<String> stations = getCustomPathStations();
+
+        if (stations.size() < 2) {
+            Toast.makeText(this, "Need at least 2 stations", Toast.LENGTH_SHORT).show();
+            return;
         }
 
-        return row;
+        String lang = getLanguage();
+        if (lang.equals("en")) {
+            displayManualResult("Computing...");
+        } else if (lang.equals("zh")) {
+            displayManualResult("計算中...");
+        } else if (lang.equals("jp")) {
+            displayManualResult("計算中...");
+        } else if (lang.equals("kr")) {
+            displayManualResult("계산 중...");
+        }
+
+        new Thread(() -> {
+
+            String result = computeManualPath(
+                    stations.toArray(new String[0]),
+                    getLanguageInt(),
+                    user_age.ordinal()
+            );
+
+            runOnUiThread(() -> {
+                displayManualResult(result);
+            });
+
+        }).start();
     }
+
+    void recomputeManualPath() {
+
+        if (currentMode != Mode.CUSTOM_PATH) return;
+
+        List<String> stations = getCustomPathStations();
+
+        if (stations.size() < 2) {
+            displayManualResult("");
+            return;
+        }
+
+        String lang = getLanguage();
+        if (lang.equals("en")) {
+            displayManualResult("Computing...");
+        } else if (lang.equals("zh")) {
+            displayManualResult("計算中...");
+        } else if (lang.equals("jp")) {
+            displayManualResult("計算中...");
+        } else if (lang.equals("kr")) {
+            displayManualResult("계산 중...");
+        }
+
+        new Thread(() -> {
+
+            String result = computeManualPath(
+                    stations.toArray(new String[0]),
+                    getLanguageInt(),
+                    user_age.ordinal()
+            );
+
+            runOnUiThread(() -> displayManualResult(result));
+
+        }).start();
+    }
+
+    List<String> getCustomPathStations() {
+
+        List<String> result = new ArrayList<>();
+
+        for (StationRow row : customPathRows) {
+
+            LineItem lineItem =
+                    (LineItem) row.lineSpinner.getSelectedItem();
+
+            int stationNo =
+                    parseStationNo(lineItem, row.stationSpinner);
+
+            if (lineItem != null && stationNo >= 0) {
+                result.add(lineItem.code + stationNo);
+            }
+        }
+
+        return result;
+    }
+
+    void addCustomPathRow() {
+
+        LinearLayout container = findViewById(R.id.customPathContainer);
+
+        LinearLayout rowLayout = new LinearLayout(this);
+        rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+        rowLayout.setPadding(0, 0, 0, 0);
+
+        LinearLayout.LayoutParams rowParams =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+
+        rowParams.setMargins(0, 0, 0, 0);
+        rowLayout.setLayoutParams(rowParams);
+
+        Spinner lineSpinner = new Spinner(this);
+        Spinner stationSpinner = new Spinner(this);
+        Button removeBtn = new Button(this);
+
+        removeBtn.setText("🗑");
+        removeBtn.setMinHeight(10);
+        removeBtn.setMinimumHeight(10);
+        removeBtn.setMinWidth(10);
+        removeBtn.setMinimumWidth(10);
+
+        // Layout weights
+        lineSpinner.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        stationSpinner.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 3));
+        removeBtn.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        rowLayout.addView(lineSpinner);
+        rowLayout.addView(stationSpinner);
+        rowLayout.addView(removeBtn);
+
+        container.addView(rowLayout);
+
+        ArrayAdapter<LineItem> adapter =
+                new ArrayAdapter<>(this,
+                        android.R.layout.simple_spinner_item,
+                        getLines());
+
+        adapter.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item);
+
+        lineSpinner.setAdapter(adapter);
+
+        refreshStationSpinner(lineSpinner, stationSpinner);
+
+        lineSpinner.setOnItemSelectedListener(
+                new AdapterView.OnItemSelectedListener() {
+                    @Override
+                    public void onItemSelected(
+                            AdapterView<?> parent, View view, int pos, long id) {
+                        refreshStationSpinner(lineSpinner, stationSpinner);
+                    }
+
+                    @Override public void onNothingSelected(AdapterView<?> parent) {}
+                });
+
+        StationRow row = new StationRow();
+        row.lineSpinner = lineSpinner;
+        row.stationSpinner = stationSpinner;
+        row.rootView = rowLayout;
+
+        customPathRows.add(row);
+
+        removeBtn.setOnClickListener(v -> {
+            container.removeView(rowLayout);
+            customPathRows.remove(row);
+        });
+    }
+
 
     String getStartLabel() {
         switch (getLanguage()) {
@@ -879,6 +1071,20 @@ public class MainActivity extends AppCompatActivity {
 
         if (costIdentityHint != null) {
             costIdentityHint.setText(getIdentityHint());
+        }
+    }
+
+    void updateManualLabels() {
+
+        Button addBtn = findViewById(R.id.addCustomStationBtn);
+        Button applyBtn = findViewById(R.id.applyManualPathBtn);
+
+        if (addBtn != null) {
+            addBtn.setText(getAddStationLabel());
+        }
+
+        if (applyBtn != null) {
+            applyBtn.setText(getApplyCustomLabel());
         }
     }
 
@@ -1363,6 +1569,20 @@ public class MainActivity extends AppCompatActivity {
         container.addView(tv);
     }
 
+    void displayManualResult(String result) {
+
+        LinearLayout container = findViewById(R.id.manualResultContainer);
+        container.removeAllViews();
+
+        TextView tv = new TextView(this);
+        tv.setText(result);
+        tv.setTextColor(getColor(R.color.custom_pink));
+        tv.setTextSize(16);
+        tv.setPadding(12, 12, 12, 12);
+
+        container.addView(tv);
+    }
+
     void addMustStationRow() {
 
         if (mustStationRows.size() >= 4) {
@@ -1713,6 +1933,7 @@ public class MainActivity extends AppCompatActivity {
 
     public native String computeFastestRoute(String fromLine, int fromStation, String toLine, int toStation, int lang, int ticketType);
     public native String computeLeastInterchangeRoute(String fromLine, int fromStation, String toLine, int toStation, int lang, int ticketType);
-
     public native String computeCustomRoute(String fromLine, int fromStation, String toLine, int toStation, String[] mustStations, String[] avoidStations, String[] mustLines, String[] avoidLines, boolean minimizeTime, boolean minimizeTransfers, int lang_int, int ageGroup);
+
+    public native String computeManualPath(String[] stations, int lang, int ageGroup);
 }

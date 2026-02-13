@@ -306,6 +306,38 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/manualPathControls"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:id="@+id/customPathContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"/>
+
+                <Button
+                    android:id="@+id/addCustomStationBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+                <Button
+                    android:id="@+id/applyManualPathBtn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"/>
+
+                <LinearLayout
+                    android:id="@+id/manualResultContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"/>
+
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/trainCostControls"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

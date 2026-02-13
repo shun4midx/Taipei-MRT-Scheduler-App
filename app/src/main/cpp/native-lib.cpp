@@ -584,3 +584,60 @@ Java_com_shun4midx_mrt_MainActivity_computeCustomRoute(JNIEnv *env, jobject thiz
 
     return env->NewStringUTF(output.c_str());
 }
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_com_shun4midx_mrt_MainActivity_computeManualPath(JNIEnv *env, jobject thiz, jobjectArray stations, jint lang, jint age_group) {
+    int count = env->GetArrayLength(stations);
+    std::vector<Station> stn_path;
+
+    for (int i = 0; i < count; ++i) {
+
+        jstring js = (jstring) env->GetObjectArrayElement(stations, i);
+        const char* raw = env->GetStringUTFChars(js, nullptr);
+
+        std::string code(raw);
+        env->ReleaseStringUTFChars(js, raw);
+
+        Line line = LINES.at(code.substr(0, code.find_first_of("0123456789")));
+        int station = std::stoi(code.substr(code.find_first_of("0123456789")));
+
+        stn_path.push_back(Station{line, station});
+    }
+
+    // ticket type
+    TicketType type;
+
+    switch (age_group) {
+        case 0: // Java CHILD
+            type = CHILD;
+            break;
+        case 1: // Java ADULT
+            type = ADULT;
+            break;
+        case 2: // Java ELDERLY
+            type = ELDERLY;
+            break;
+        default:
+            type = ADULT;
+    }
+
+    int day_type, now_mins;
+    getTaipeiTime(&day_type, &now_mins);
+
+    // Evaluate
+    std::string output;
+    try {
+        output = pathDetailsToUser(stn_path, Time{now_mins / 60, now_mins % 60}, day_type, static_cast<const Language>(lang), type);
+    } catch (...) {
+        if (lang == en) {
+            output = "No such path available";
+        } else if (lang == zh) {
+            output = "沒有這樣的路徑";
+        } else if (lang == jp) {
+            output = "そのような道はありません";
+        } else if (lang == kr) {
+            output = "그런 길은 없어요";
+        }
+    }
+    return env->NewStringUTF(output.c_str());
+}
