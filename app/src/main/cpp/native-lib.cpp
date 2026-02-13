@@ -347,6 +347,21 @@ Java_com_shun4midx_mrt_MainActivity_computeFastestRoute(JNIEnv* env, jobject, js
 
     Language lang = static_cast<Language>(langInt);
 
+    // Invalid
+    std::string output;
+    if (sameStation(src, dst)) {
+        if (lang == en) {
+            output = "No such path available";
+        } else if (lang == zh) {
+            output = "沒有這樣的路徑";
+        } else if (lang == jp) {
+            output = "そのような道はありません";
+        } else if (lang == kr) {
+            output = "그런 길은 없어요";
+        }
+        return env->NewStringUTF(output.c_str());
+    }
+
     // ticket type
     TicketType type;
 
@@ -368,8 +383,6 @@ Java_com_shun4midx_mrt_MainActivity_computeFastestRoute(JNIEnv* env, jobject, js
     getTaipeiTime(&day_type, &now_mins);
 
     std::vector<RoutedPath> results = routeDefault(src, dst, Time{now_mins / 60, now_mins % 60}, day_type, 3);
-
-    std::string output;
 
     for (const auto& rp : results) {
         output += pathDetailsToUser(rp.path, Time{now_mins / 60, now_mins % 60}, day_type, lang, type);
@@ -399,6 +412,21 @@ Java_com_shun4midx_mrt_MainActivity_computeLeastInterchangeRoute(JNIEnv* env, jo
 
     Language lang = static_cast<Language>(langInt);
 
+    // Invalid
+    std::string output;
+    if (sameStation(src, dst)) {
+        if (lang == en) {
+            output = "No such path available";
+        } else if (lang == zh) {
+            output = "沒有這樣的路徑";
+        } else if (lang == jp) {
+            output = "そのような道はありません";
+        } else if (lang == kr) {
+            output = "그런 길은 없어요";
+        }
+        return env->NewStringUTF(output.c_str());
+    }
+
     // ticket type
     TicketType type;
 
@@ -420,8 +448,6 @@ Java_com_shun4midx_mrt_MainActivity_computeLeastInterchangeRoute(JNIEnv* env, jo
     getTaipeiTime(&day_type, &now_mins);
 
     std::vector<RoutedPath> results = routeLeastInterchange(src, dst, Time{now_mins / 60, now_mins % 60}, day_type, 3);
-
-    std::string output;
 
     for (const auto& rp : results) {
         output += pathDetailsToUser(rp.path, Time{now_mins / 60, now_mins % 60}, day_type, lang, type);
@@ -454,6 +480,21 @@ Java_com_shun4midx_mrt_MainActivity_computeCustomRoute(JNIEnv *env, jobject thiz
     Station dst{l2, (int)to_station};
 
     Language lang = static_cast<Language>(lang_int);
+
+    // Invalid
+    std::string output;
+    if (sameStation(src, dst)) {
+        if (lang == en) {
+            output = "No such path available";
+        } else if (lang == zh) {
+            output = "沒有這樣的路徑";
+        } else if (lang == jp) {
+            output = "そのような道はありません";
+        } else if (lang == kr) {
+            output = "그런 길은 없어요";
+        }
+        return env->NewStringUTF(output.c_str());
+    }
 
     // ticket type
     TicketType type;
@@ -560,8 +601,6 @@ Java_com_shun4midx_mrt_MainActivity_computeCustomRoute(JNIEnv *env, jobject thiz
     rc.minimize_interchanges = minimize_transfers;
 
     std::vector<RoutedPath> results = routeCustom(src, dst, Time{now_mins / 60, now_mins % 60}, day_type, rc, 3);
-
-    std::string output;
 
     for (const auto& rp : results) {
         output += pathDetailsToUser(rp.path, Time{now_mins / 60, now_mins % 60}, day_type, lang, type);

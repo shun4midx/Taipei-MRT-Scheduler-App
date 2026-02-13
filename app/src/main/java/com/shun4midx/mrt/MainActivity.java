@@ -694,12 +694,12 @@ public class MainActivity extends AppCompatActivity {
                 }
                 break;
 
-            default: // how about route planner and custom path
+            default: // normal case should be to show
                 nextTrainControls.setVisibility(View.GONE);
                 routePlannerControls.setVisibility(View.GONE);
                 trainCostControls.setVisibility(View.GONE);
                 if (footer != null) {
-                    footer.setVisibility(View.GONE);
+                    footer.setVisibility(View.VISIBLE);
                 }
         }
     }
@@ -732,6 +732,8 @@ public class MainActivity extends AppCompatActivity {
                     routePlannerControls.setVisibility(View.GONE);
                     manualPathControls.setVisibility(View.GONE);
                     trainCostControls.setVisibility(View.GONE);
+                    TextView footer = findViewById(R.id.footerStatement);
+                    footer.setVisibility(View.VISIBLE);
                     return;
                 }
 
