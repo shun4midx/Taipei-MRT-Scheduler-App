@@ -849,7 +849,6 @@ public class MainActivity extends AppCompatActivity {
         List<String> stations = getCustomPathStations();
 
         if (stations.size() < 2) {
-            Toast.makeText(this, "Need at least 2 stations", Toast.LENGTH_SHORT).show();
             return;
         }
 
