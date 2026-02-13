@@ -434,3 +434,153 @@ Java_com_shun4midx_mrt_MainActivity_computeLeastInterchangeRoute(JNIEnv* env, jo
 
     return env->NewStringUTF(output.c_str());
 }
+
+
+extern "C"
+JNIEXPORT jstring JNICALL
+Java_com_shun4midx_mrt_MainActivity_computeCustomRoute(JNIEnv *env, jobject thiz, jstring from_line, jint from_station, jstring to_line, jint to_station, jobjectArray must_stations, jobjectArray avoid_stations, jobjectArray must_lines, jobjectArray avoid_lines, jboolean minimize_time, jboolean minimize_transfers, jint lang_int, jint age_group) {
+    const char* raw1 = env->GetStringUTFChars(from_line, nullptr);
+    std::string code1(raw1);
+    env->ReleaseStringUTFChars(from_line, raw1);
+
+    const char* raw2 = env->GetStringUTFChars(to_line, nullptr);
+    std::string code2(raw2);
+    env->ReleaseStringUTFChars(to_line, raw2);
+
+    Line l1 = LINES.at(code1);
+    Line l2 = LINES.at(code2);
+
+    Station src{l1, (int)from_station};
+    Station dst{l2, (int)to_station};
+
+    Language lang = static_cast<Language>(lang_int);
+
+    // ticket type
+    TicketType type;
+
+    switch (age_group) {
+        case 0: // Java CHILD
+            type = CHILD;
+            break;
+        case 1: // Java ADULT
+            type = ADULT;
+            break;
+        case 2: // Java ELDERLY
+            type = ELDERLY;
+            break;
+        default:
+            type = ADULT;
+    }
+
+    int day_type, now_mins;
+    getTaipeiTime(&day_type, &now_mins);
+
+    // Find results
+    /*
+     typedef struct routeconstraints {
+        std::vector<Station> must_stations; // ensure these are in a specific order already, and also only suggest one shortest path lol
+        std::vector<Station> avoid_stations;
+        std::vector<Line> avoid_lines;
+        std::vector<Line> must_lines;
+
+        // Ranking pref
+        bool minimize_time = true;
+        bool minimize_interchanges = true;
+
+        // Search limits
+        int max_interchanges = 30;
+    } RouteConstraints;
+    */
+
+    RouteConstraints rc;
+
+    int count = env->GetArrayLength(must_stations);
+
+    for (int i = 0; i < count; ++i) {
+
+        jstring js = (jstring) env->GetObjectArrayElement(must_stations, i);
+        const char* raw = env->GetStringUTFChars(js, nullptr);
+
+        std::string code(raw);
+        env->ReleaseStringUTFChars(js, raw);
+
+        Line line = LINES.at(code.substr(0, code.find_first_of("0123456789")));
+        int station = std::stoi(code.substr(code.find_first_of("0123456789")));
+
+        rc.must_stations.push_back(Station{line, station});
+    }
+
+    count = env->GetArrayLength(avoid_stations);
+
+    for (int i = 0; i < count; ++i) {
+
+        jstring js = (jstring) env->GetObjectArrayElement(avoid_stations, i);
+        const char* raw = env->GetStringUTFChars(js, nullptr);
+
+        std::string code(raw);
+        env->ReleaseStringUTFChars(js, raw);
+
+        Line line = LINES.at(code.substr(0, code.find_first_of("0123456789")));
+        int station = std::stoi(code.substr(code.find_first_of("0123456789")));
+
+        rc.avoid_stations.push_back(Station{line, station});
+    }
+
+    count = env->GetArrayLength(must_lines);
+
+    for (int i = 0; i < count; ++i) {
+
+        jstring js = (jstring) env->GetObjectArrayElement(must_lines, i);
+        const char* raw = env->GetStringUTFChars(js, nullptr);
+
+        std::string code(raw);
+        env->ReleaseStringUTFChars(js, raw);
+
+        Line line = LINES.at(code);
+
+        rc.must_lines.push_back(line);
+    }
+
+    count = env->GetArrayLength(avoid_lines);
+
+    for (int i = 0; i < count; ++i) {
+
+        jstring js = (jstring) env->GetObjectArrayElement(avoid_lines, i);
+        const char* raw = env->GetStringUTFChars(js, nullptr);
+
+        std::string code(raw);
+        env->ReleaseStringUTFChars(js, raw);
+
+        Line line = LINES.at(code);
+
+        rc.avoid_lines.push_back(line);
+    }
+
+    rc.minimize_time = minimize_time;
+    rc.minimize_interchanges = minimize_transfers;
+
+    std::vector<RoutedPath> results = routeCustom(src, dst, Time{now_mins / 60, now_mins % 60}, day_type, rc, 3);
+
+    std::string output;
+
+    for (const auto& rp : results) {
+        output += pathDetailsToUser(rp.path, Time{now_mins / 60, now_mins % 60}, day_type, lang, type);
+        output += "\n\n";
+    }
+
+    if (output.size() > 0) {
+        output.pop_back();
+    } else {
+        if (lang == en) {
+            output = "No such path available";
+        } else if (lang == zh) {
+            output = "沒有這樣的路徑";
+        } else if (lang == jp) {
+            output = "そのような道はありません";
+        } else if (lang == kr) {
+            output = "그런 길은 없어요";
+        }
+    }
+
+    return env->NewStringUTF(output.c_str());
+}

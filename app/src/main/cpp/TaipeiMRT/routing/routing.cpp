@@ -10,6 +10,10 @@
 #include <unordered_set>
 #include <iostream>
 
+static inline int stationKey(const Station& s) {
+    return (int)s.line * 1000 + s.stn_num;
+}
+
 // ======== HELPERS ======== //
 bool stationInList(const Station& s, const std::vector<Station>& v) {
     for (const Station& stn : v) {
@@ -22,15 +26,8 @@ bool stationInList(const Station& s, const std::vector<Station>& v) {
 }
 
 bool forbiddenStation(const Station& s, const RouteConstraints& c) {
-    std::vector<Station> all_avoid_stations;
 
-    for (auto& stn : c.avoid_stations) {
-        std::vector<Station> alt_names = getEquivalentStations(stn);
-
-        all_avoid_stations.insert(all_avoid_stations.end(), alt_names.begin(), alt_names.end());
-    }
-
-    if (stationInList(s, all_avoid_stations)) {
+    if (c.avoid_station_keys.count(stationKey(s))) {
         return true;
     }
 
@@ -405,9 +402,10 @@ std::vector<RoutedPath> routeCustom(const Station& src, const Station& dst, Time
                 }
             );
 
-            // if (next_partials.size() > k * 10) {
-            //     next_partials.resize(k);
-            // }
+            int beam = std::max(k * 5, 10);     // tune
+            if ((int)next_partials.size() > beam) {
+                next_partials.resize(beam);
+            }
 
             partials = std::move(next_partials);
 
@@ -476,6 +474,14 @@ std::vector<RoutedPath> routeEngine(const Station& src, const Station& dst, Time
         throw std::invalid_argument("routeEngine: invalid curr_time");
     }
 
+    // Rebuild constraints avoidset
+    RouteConstraints c = constraints;
+    for (const Station& stn : c.avoid_stations) {
+        for (const Station& alt : getEquivalentStations(stn)) {
+            c.avoid_station_keys.insert(stationKey(alt));
+        }
+    }
+
     std::vector<RoutedPath> routed;
     std::unordered_set<std::string> seen_paths; // avoid re-evaluating duplicates across budgets
 
@@ -539,9 +545,14 @@ std::vector<RoutedPath> routeEngine(const Station& src, const Station& dst, Time
             }
         );
 
-        // if (routed.size() >= k) {
-        //     break;
-        // }
+        // keep pool small (SUPER important)
+        int keep = std::max(k * 10, 30); // tune
+        if ((int)routed.size() > keep) routed.resize(keep);
+
+        // now break early
+        if ((int)routed.size() >= k) {
+            break;
+        }
     }
 
     for (auto& rp : routed) {

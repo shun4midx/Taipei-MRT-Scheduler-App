@@ -23,6 +23,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -36,7 +37,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -71,6 +74,23 @@ public class MainActivity extends AppCompatActivity {
     LinearLayout routeStrategyContainer;
 
     TextView customConstraintsLabel;
+    TextView mustStationsTitle, avoidStationsTitle, avoidLinesTitle, mustLinesTitle;
+    Button addMustStationBtn, addAvoidStationBtn, applyCustomBtn;
+    TextView rankingPreferenceTitle;
+    CheckBox minTimeCheck, minTransferCheck;
+
+    static class StationRow {
+        Spinner lineSpinner;
+        Spinner stationSpinner;
+        View rootView;  // the whole row layout
+    }
+
+    List<StationRow> mustStationRows = new ArrayList<>();
+    LinearLayout mustLinesContainer;
+    List<CheckBox> mustLineChecks = new ArrayList<>();
+    List<StationRow> avoidStationRows = new ArrayList<>();
+    LinearLayout avoidLinesContainer;
+    List<CheckBox> avoidLineChecks = new ArrayList<>();
 
     // ===== TRAIN_COST UI =====
     TextView costStartLabel, costEndLabel;
@@ -435,6 +455,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         updateRoutePlannerLabels();
+        updateCustomLabels();
         setupRouteStrategyButtons();
         updateRouteStrategyUI();
         updateCostLabels();
@@ -951,6 +972,34 @@ public class MainActivity extends AppCompatActivity {
         refreshStationSpinner(routeFromLine, routeFromStation);
         refreshStationSpinner(routeToLine, routeToStation);
 
+        mustStationsTitle = findViewById(R.id.mustStationsTitle);
+        avoidStationsTitle = findViewById(R.id.avoidStationsTitle);
+        avoidLinesTitle = findViewById(R.id.avoidLinesTitle);
+        mustLinesTitle = findViewById(R.id.mustLinesTitle);
+
+        addMustStationBtn = findViewById(R.id.addMustStationBtn);
+        addMustStationBtn.setOnClickListener(v -> addMustStationRow());
+
+        mustLinesContainer = findViewById(R.id.mustLinesContainer);
+        buildMustLineCheckboxes();
+
+        addAvoidStationBtn = findViewById(R.id.addAvoidStationBtn);
+        addAvoidStationBtn.setOnClickListener(v -> addAvoidStationRow());
+
+        avoidLinesContainer = findViewById(R.id.avoidLinesContainer);
+        buildAvoidLineCheckboxes();
+
+        rankingPreferenceTitle = findViewById(R.id.rankingPreferenceTitle);
+
+        applyCustomBtn = findViewById(R.id.applyCustomBtn);
+
+        minTimeCheck = findViewById(R.id.minTimeCheck);
+        minTransferCheck = findViewById(R.id.minTransferCheck);
+
+        updateCustomLabels();
+
+        applyCustomBtn.setOnClickListener(v -> applyCustomRoute());
+
         setupRouteStrategyButtons();
         updateRoutePlannerLabels();
 
@@ -1133,6 +1182,102 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    void updateCustomLabels() {
+        mustStationsTitle.setText(getMustStationsLabel());
+        mustLinesTitle.setText(getMustLinesLabel());
+        avoidStationsTitle.setText(getAvoidStationsLabel());
+        avoidLinesTitle.setText(getAvoidLinesLabel());
+
+        addMustStationBtn.setText(getAddStationLabel());
+        addAvoidStationBtn.setText(getAddStationLabel());
+        applyCustomBtn.setText(getApplyCustomLabel());
+
+        rankingPreferenceTitle.setText(getRankingPreferenceLabel());
+        minTimeCheck.setText(getMinTimeLabel());
+        minTransferCheck.setText(getMinTransferLabel());
+    }
+
+    String getMustStationsLabel() {
+        switch (getLanguage()) {
+            case "en": return "Must Pass Stations (Max 4)";
+            case "jp": return "必経駅（最大4）";
+            case "kr": return "반드시 지나야 할 역 (최대 4개)";
+            default:   return "必經車站（最多 4 個）";
+        }
+    }
+
+    String getMustLinesLabel() {
+        switch (getLanguage()) {
+            case "en": return "Must Use Lines";
+            case "jp": return "必ず通る路線";
+            case "kr": return "반드시 사용하는 노선";
+            default:   return "必須經過路線";
+        }
+    }
+
+    String getAvoidStationsLabel() {
+        switch (getLanguage()) {
+            case "en": return "Avoid Stations";
+            case "jp": return "避ける駅";
+            case "kr": return "피할 역";
+            default:   return "避開車站";
+        }
+    }
+
+    String getAvoidLinesLabel() {
+        switch (getLanguage()) {
+            case "en": return "Avoid Lines";
+            case "jp": return "避ける路線";
+            case "kr": return "피할 노선";
+            default:   return "避開路線";
+        }
+    }
+
+    String getRankingPreferenceLabel() {
+        switch (getLanguage()) {
+            case "en": return "Ranking Preference";
+            case "jp": return "優先順位";
+            case "kr": return "우선순위";
+            default:   return "排序偏好";
+        }
+    }
+
+    String getMinTimeLabel() {
+        switch (getLanguage()) {
+            case "en": return "Minimize Time";
+            case "jp": return "最短時間";
+            case "kr": return "최단 시간";
+            default:   return "最短時間";
+        }
+    }
+
+    String getMinTransferLabel() {
+        switch (getLanguage()) {
+            case "en": return "Minimize Transfers";
+            case "jp": return "最少乗換";
+            case "kr": return "최소 환승";
+            default:   return "最少轉乘";
+        }
+    }
+
+    String getAddStationLabel() {
+        switch (getLanguage()) {
+            case "en": return "+ Add Station";
+            case "jp": return "+ 駅を追加";
+            case "kr": return "+ 역 추가";
+            default:   return "+ 新增車站";
+        }
+    }
+
+    String getApplyCustomLabel() {
+        switch (getLanguage()) {
+            case "en": return "Apply Custom Route";
+            case "jp": return "カスタム経路を適用";
+            case "kr": return "사용자 경로 적용";
+            default:   return "套用自訂路線";
+        }
+    }
+
     void updateCostUI() {
         if (costTable == null) {
             return;
@@ -1201,6 +1346,331 @@ public class MainActivity extends AppCompatActivity {
         container.addView(tv);
     }
 
+    void addMustStationRow() {
+
+        if (mustStationRows.size() >= 4) {
+            return;
+        }
+
+        LinearLayout container = findViewById(R.id.mustStationsContainer);
+
+        LinearLayout rowLayout = new LinearLayout(this);
+        rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+        rowLayout.setPadding(0, 0, 0, 0);
+
+        LinearLayout.LayoutParams rowParams =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+
+        rowParams.setMargins(0, 0, 0, 0);
+        rowLayout.setLayoutParams(rowParams);
+
+        Spinner lineSpinner = new Spinner(this);
+        Spinner stationSpinner = new Spinner(this);
+        Button removeBtn = new Button(this);
+
+        removeBtn.setText("🗑");
+        removeBtn.setMinHeight(10);
+        removeBtn.setMinimumHeight(10);
+        removeBtn.setMinWidth(10);
+        removeBtn.setMinimumWidth(10);
+
+        // Layout weights
+        lineSpinner.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        stationSpinner.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 3));
+        removeBtn.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        rowLayout.addView(lineSpinner);
+        rowLayout.addView(stationSpinner);
+        rowLayout.addView(removeBtn);
+
+        container.addView(rowLayout);
+
+        // Set adapter
+        ArrayAdapter<LineItem> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, getLines());
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        lineSpinner.setAdapter(adapter);
+
+        refreshStationSpinner(lineSpinner, stationSpinner);
+
+        lineSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+                refreshStationSpinner(lineSpinner, stationSpinner);
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        StationRow stationRow = new StationRow();
+        stationRow.lineSpinner = lineSpinner;
+        stationRow.stationSpinner = stationSpinner;
+        stationRow.rootView = rowLayout;
+
+        mustStationRows.add(stationRow);
+
+        removeBtn.setOnClickListener(v -> {
+            container.removeView(rowLayout);
+            mustStationRows.remove(stationRow);
+        });
+    }
+
+    void addAvoidStationRow() {
+
+        LinearLayout container = findViewById(R.id.avoidStationsContainer);
+
+        LinearLayout rowLayout = new LinearLayout(this);
+        rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+        rowLayout.setPadding(0, 0, 0, 0);
+
+        LinearLayout.LayoutParams rowParams =
+                new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+
+        rowParams.setMargins(0, 0, 0, 0);
+        rowLayout.setLayoutParams(rowParams);
+
+        Spinner lineSpinner = new Spinner(this);
+        Spinner stationSpinner = new Spinner(this);
+        Button removeBtn = new Button(this);
+
+        removeBtn.setText("🗑");
+        removeBtn.setMinHeight(10);
+        removeBtn.setMinimumHeight(10);
+        removeBtn.setMinWidth(10);
+        removeBtn.setMinimumWidth(10);
+
+        // Layout weights
+        lineSpinner.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        stationSpinner.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 3));
+        removeBtn.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        rowLayout.addView(lineSpinner);
+        rowLayout.addView(stationSpinner);
+        rowLayout.addView(removeBtn);
+
+        container.addView(rowLayout);
+
+        ArrayAdapter<LineItem> adapter =
+                new ArrayAdapter<>(this,
+                        android.R.layout.simple_spinner_item,
+                        getLines());
+
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        lineSpinner.setAdapter(adapter);
+
+        refreshStationSpinner(lineSpinner, stationSpinner);
+
+        lineSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+                refreshStationSpinner(lineSpinner, stationSpinner);
+            }
+
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        StationRow row = new StationRow();
+        row.lineSpinner = lineSpinner;
+        row.stationSpinner = stationSpinner;
+        row.rootView = rowLayout;
+
+        avoidStationRows.add(row);
+
+        removeBtn.setOnClickListener(v -> {
+            container.removeView(rowLayout);
+            avoidStationRows.remove(row);
+        });
+    }
+
+    void buildMustLineCheckboxes() {
+
+        mustLinesContainer.removeAllViews();
+        mustLineChecks.clear();
+
+        LineItem[] lines = getLines();
+
+        for (LineItem line : lines) {
+
+            CheckBox cb = new CheckBox(this);
+
+            cb.setText("");  // no label text
+
+            int color = getLineColor(line.code);
+
+            // Set tint
+            cb.setButtonTintList(
+                    android.content.res.ColorStateList.valueOf(color)
+            );
+
+            LinearLayout.LayoutParams lp =
+                    new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                    );
+
+            lp.setMargins(12, 0, 12, 0);
+            cb.setLayoutParams(lp);
+
+            mustLinesContainer.addView(cb);
+            mustLineChecks.add(cb);
+        }
+    }
+
+    void buildAvoidLineCheckboxes() {
+
+        avoidLinesContainer.removeAllViews();
+        avoidLineChecks.clear();
+
+        LineItem[] lines = getLines();
+
+        for (LineItem line : lines) {
+
+            CheckBox cb = new CheckBox(this);
+
+            cb.setText("");  // no label
+            cb.setButtonTintList(
+                    android.content.res.ColorStateList.valueOf(
+                            getLineColor(line.code)
+                    )
+            );
+
+            LinearLayout.LayoutParams lp =
+                    new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                    );
+
+            lp.setMargins(12, 0, 12, 0);
+            cb.setLayoutParams(lp);
+
+            avoidLinesContainer.addView(cb);
+            avoidLineChecks.add(cb);
+        }
+    }
+
+    List<String> getSelectedMustLines() {
+
+        List<String> result = new ArrayList<>();
+        LineItem[] lines = getLines();
+
+        for (int i = 0; i < mustLineChecks.size(); i++) {
+            if (mustLineChecks.get(i).isChecked()) {
+                result.add(lines[i].code);
+            }
+        }
+
+        return result;
+    }
+
+    List<String> getSelectedAvoidLines() {
+
+        List<String> result = new ArrayList<>();
+        LineItem[] lines = getLines();
+
+        for (int i = 0; i < avoidLineChecks.size(); i++) {
+            if (avoidLineChecks.get(i).isChecked()) {
+                result.add(lines[i].code);
+            }
+        }
+
+        return result;
+    }
+
+    List<String> getMustStations() {
+
+        List<String> result = new ArrayList<>();
+
+        for (StationRow row : mustStationRows) {
+
+            LineItem lineItem = (LineItem) row.lineSpinner.getSelectedItem();
+            int stationNo = parseStationNo(lineItem, row.stationSpinner);
+
+            if (lineItem != null && stationNo >= 0) {
+                result.add(lineItem.code + stationNo);
+            }
+        }
+
+        return result;
+    }
+
+
+    List<String> getAvoidStations() {
+
+        List<String> result = new ArrayList<>();
+
+        for (StationRow row : avoidStationRows) {
+
+            LineItem lineItem = (LineItem) row.lineSpinner.getSelectedItem();
+            int stationNo = parseStationNo(lineItem, row.stationSpinner);
+
+            if (lineItem != null && stationNo >= 0) {
+                result.add(lineItem.code + stationNo);
+            }
+        }
+
+        return result;
+    }
+
+    int getLineColor(String code) {
+
+        switch (code) {
+            case "R":  return getColor(R.color.line_red);
+            case "O":  return getColor(R.color.line_orange);
+            case "Y":  return getColor(R.color.line_yellow);
+            case "G":  return getColor(R.color.line_green);
+            case "BL": return getColor(R.color.line_blue);
+            case "BR": return getColor(R.color.line_brown);
+            default:   return Color.GRAY;
+        }
+    }
+
+    void applyCustomRoute() {
+
+        LineItem fromL = (LineItem) routeFromLine.getSelectedItem();
+        LineItem toL   = (LineItem) routeToLine.getSelectedItem();
+
+        int fromSt = parseStationNo(fromL, routeFromStation);
+        int toSt   = parseStationNo(toL, routeToStation);
+
+        if (fromSt < 0 || toSt < 0) {
+            return;
+        }
+
+        List<String> mustStations  = getMustStations();
+        List<String> avoidStations = getAvoidStations();
+        List<String> mustLines     = getSelectedMustLines();
+        List<String> avoidLines    = getSelectedAvoidLines();
+
+        boolean minimizeTime = minTimeCheck.isChecked();
+        boolean minimizeTransfers = minTransferCheck.isChecked();
+
+        // Show loading text
+        String lang = getLanguage();
+        if (lang.equals("en")) {
+            displayRouteResult("Computing...");
+        } else if (lang.equals("zh")) {
+            displayRouteResult("計算中...");
+        } else if (lang.equals("jp")) {
+            displayRouteResult("計算中...");
+        } else if (lang.equals("kr")) {
+            displayRouteResult("계산 중...");
+        }
+
+        new Thread(() -> {
+
+            String result = computeCustomRoute(fromL.code, fromSt, toL.code, toSt, mustStations.toArray(new String[0]), avoidStations.toArray(new String[0]), mustLines.toArray(new String[0]), avoidLines.toArray(new String[0]), minimizeTime, minimizeTransfers, getLanguageInt(), user_age.ordinal());
+
+            runOnUiThread(() -> {
+                displayRouteResult(result);
+            });
+
+        }).start();
+    }
+
     @Override
     protected void onPause() {
         super.onPause();
@@ -1226,4 +1696,6 @@ public class MainActivity extends AppCompatActivity {
 
     public native String computeFastestRoute(String fromLine, int fromStation, String toLine, int toStation, int lang, int ticketType);
     public native String computeLeastInterchangeRoute(String fromLine, int fromStation, String toLine, int toStation, int lang, int ticketType);
+
+    public native String computeCustomRoute(String fromLine, int fromStation, String toLine, int toStation, String[] mustStations, String[] avoidStations, String[] mustLines, String[] avoidLines, boolean minimizeTime, boolean minimizeTransfers, int lang_int, int ageGroup);
 }

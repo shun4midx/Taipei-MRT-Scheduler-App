@@ -10,6 +10,7 @@
 #include "../utils/utils.h"
 
 #include <vector>
+#include <unordered_set>
 
 // ======== STRUCTS ======== //
 typedef struct routedpath {
@@ -31,6 +32,8 @@ typedef struct routeconstraints {
 
     // Search limits
     int max_interchanges = 30;
+
+    std::unordered_set<int> avoid_station_keys;
 } RouteConstraints;
 
 typedef struct candstate {

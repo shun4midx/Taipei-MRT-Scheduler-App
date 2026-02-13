@@ -8,4 +8,11 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="transparent_blue">#DD040E39</color>
+
+    <color name="line_red">#D40528</color>
+    <color name="line_orange">#F39800</color>
+    <color name="line_yellow">#FFD700</color>
+    <color name="line_green">#009944</color>
+    <color name="line_blue">#0072CE</color>
+    <color name="line_brown">#8B5A2B</color>
 </resources>
