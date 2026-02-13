@@ -225,6 +225,8 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
 
     q.push({src, {src}, 0});
 
+    std::unordered_map<int, int> best_interchange;
+
     while (!q.empty()) {
         CandState curr = q.front();
         q.pop();
@@ -242,6 +244,14 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
 
             continue;
         }
+
+        int key = stationKey(curr.stn);
+
+        if (best_interchange.count(key) && best_interchange[key] <= curr.interchange_count) {
+            continue;
+        }
+
+        best_interchange[key] = curr.interchange_count;
 
         // Same line neighbors: +/- station number
         for (int delta: {-1, +1}) {
