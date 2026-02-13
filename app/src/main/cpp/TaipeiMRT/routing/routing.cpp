@@ -225,7 +225,7 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
 
     q.push({src, {src}, 0});
 
-    while (!q.empty() && results.size() < max_paths) {
+    while (!q.empty()) {
         CandState curr = q.front();
         q.pop();
 
@@ -237,7 +237,7 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
             results.push_back(curr.path);
 
             if (results.size() >= max_paths) {
-                break;
+                continue;
             }
 
             continue;
@@ -481,8 +481,6 @@ std::vector<RoutedPath> routeEngine(const Station& src, const Station& dst, Time
             c.avoid_station_keys.insert(stationKey(alt));
         }
     }
-    std::cout << "Avoid keys count: " << c.avoid_station_keys.size() << "\n";
-
 
     std::vector<RoutedPath> routed;
     std::unordered_set<std::string> seen_paths; // avoid re-evaluating duplicates across budgets
