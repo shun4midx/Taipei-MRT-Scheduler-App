@@ -547,18 +547,35 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        String result;
-
-        if (currentStrategy == RouteStrategy.FASTEST) {
-            result = computeFastestRoute(fromL.code, fromSt, toL.code, toSt, getLanguageInt(), user_age.ordinal());
-        } else if (currentStrategy == RouteStrategy.LEAST_INTERCHANGE) {
-            result = computeLeastInterchangeRoute(fromL.code, fromSt, toL.code, toSt, getLanguageInt(), user_age.ordinal());
-        } else {
-            clearRouteResult();
-            return;
+        String lang = getLanguage();
+        if (lang.equals("en")) {
+            displayRouteResult("Computing...");
+        } else if (lang.equals("zh")) {
+            displayRouteResult("計算中...");
+        } else if (lang.equals("jp")) {
+            displayRouteResult("計算中...");
+        } else if (lang.equals("kr")) {
+            displayRouteResult("계산 중...");
         }
 
-        displayRouteResult(result);
+        new Thread(() -> {
+
+            String result;
+
+            if (currentStrategy == RouteStrategy.FASTEST) {
+                result = computeFastestRoute(fromL.code, fromSt, toL.code, toSt, getLanguageInt(), user_age.ordinal());
+            } else if (currentStrategy == RouteStrategy.LEAST_INTERCHANGE) {
+                result = computeLeastInterchangeRoute(fromL.code, fromSt, toL.code, toSt, getLanguageInt(), user_age.ordinal());
+            } else {
+                clearRouteResult();
+                return;
+            }
+
+            runOnUiThread(() -> {
+                displayRouteResult(result);
+            });
+
+        }).start();
     }
 
     String getModeLabel(Mode mode) {
