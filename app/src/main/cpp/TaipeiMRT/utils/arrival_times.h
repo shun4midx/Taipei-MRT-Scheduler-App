@@ -45,3 +45,6 @@ Time nextTrainTime(const Station& stn, int day_type, int now_mins, const Station
 
 Time firstTrainTime(const Station& stn, int day_type, const Station& dest);
 Time lastTrainTime(const Station& stn, int day_type, const Station& dest);
+
+// ======== DAY TYPE ======= //
+bool isPublicHoliday(int year, int month, int day);

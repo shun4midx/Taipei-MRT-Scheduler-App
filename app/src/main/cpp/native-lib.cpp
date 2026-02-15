@@ -128,10 +128,21 @@ void getTaipeiTime(int* day_type, int* now_mins) {
     *now_mins = utc_tm.tm_hour * 60 + utc_tm.tm_min;
 
     // Exceptions (idk like set the cap till 2am)
-
+    bool past_midnight = false;
     if (*now_mins <= 120) {
         *now_mins = *now_mins + 24 * 60;
         *day_type = (*day_type + 6) % 7;
+        past_midnight = true;
+    }
+
+    // Check for public holiday remembering midnight
+    // utc_tm.tm_mon = [0..11], utc_tm.tm_mday = [1..31]
+    if (past_midnight) {
+        utc_tm.tm_hour -= 24; // Just set 24 hours before for simplicity, since we won't check mins anymore
+    }
+
+    if (isPublicHoliday(utc_tm.tm_year, utc_tm.tm_mon + 1, utc_tm.tm_mday)) {
+        *day_type = 7;
     }
 }
 
