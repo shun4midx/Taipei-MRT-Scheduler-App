@@ -8,7 +8,7 @@ target_sources(taipei_mrt PRIVATE
         utils/arrival_times.cpp
         utils/basic.cpp
         utils/cost.cpp
-        utils/interchange.cpp
+        utils/transfer.cpp
         utils/path_duration.cpp
 )
 

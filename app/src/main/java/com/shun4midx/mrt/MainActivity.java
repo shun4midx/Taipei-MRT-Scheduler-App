@@ -45,7 +45,7 @@ import java.util.Map;
 
 enum RouteStrategy {
     FASTEST,
-    LEAST_INTERCHANGE,
+    LEAST_TRANSFER,
     CUSTOM
 }
 
@@ -582,8 +582,8 @@ public class MainActivity extends AppCompatActivity {
 
             if (currentStrategy == RouteStrategy.FASTEST) {
                 result = computeFastestRoute(fromL.code, fromSt, toL.code, toSt, getLanguageInt(), user_age.ordinal());
-            } else if (currentStrategy == RouteStrategy.LEAST_INTERCHANGE) {
-                result = computeLeastInterchangeRoute(fromL.code, fromSt, toL.code, toSt, getLanguageInt(), user_age.ordinal());
+            } else if (currentStrategy == RouteStrategy.LEAST_TRANSFER) {
+                result = computeLeastTransferRoute(fromL.code, fromSt, toL.code, toSt, getLanguageInt(), user_age.ordinal());
             } else {
                 clearRouteResult();
                 return;
@@ -1353,28 +1353,28 @@ public class MainActivity extends AppCompatActivity {
             case "zh":
                 switch (strategy) {
                     case FASTEST: return "最快";
-                    case LEAST_INTERCHANGE: return "最少轉乘";
+                    case LEAST_TRANSFER: return "最少轉乘";
                     case CUSTOM: return "自訂";
                 }
 
             case "en":
                 switch (strategy) {
                     case FASTEST: return "Fastest";
-                    case LEAST_INTERCHANGE: return "Least Transfers";
+                    case LEAST_TRANSFER: return "Least Transfers";
                     case CUSTOM: return "Custom";
                 }
 
             case "jp":
                 switch (strategy) {
                     case FASTEST: return "最速";
-                    case LEAST_INTERCHANGE: return "最少乗換";
+                    case LEAST_TRANSFER: return "最少乗換";
                     case CUSTOM: return "カスタム";
                 }
 
             case "kr":
                 switch (strategy) {
                     case FASTEST: return "최단 시간";
-                    case LEAST_INTERCHANGE: return "최소 환승";
+                    case LEAST_TRANSFER: return "최소 환승";
                     case CUSTOM: return "사용자 지정";
                 }
         }
@@ -1919,7 +1919,7 @@ public class MainActivity extends AppCompatActivity {
     public native int getFare(String line1, int st1, String line2, int st2, int ageGroup);
 
     public native String computeFastestRoute(String fromLine, int fromStation, String toLine, int toStation, int lang, int ticketType);
-    public native String computeLeastInterchangeRoute(String fromLine, int fromStation, String toLine, int toStation, int lang, int ticketType);
+    public native String computeLeastTransferRoute(String fromLine, int fromStation, String toLine, int toStation, int lang, int ticketType);
     public native String computeCustomRoute(String fromLine, int fromStation, String toLine, int toStation, String[] mustStations, String[] avoidStations, String[] mustLines, String[] avoidLines, boolean minimizeTime, boolean minimizeTransfers, int lang_int, int ageGroup);
 
     public native String computeManualPath(String[] stations, int lang, int ageGroup);

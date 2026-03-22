@@ -405,7 +405,7 @@ Java_com_shun4midx_mrt_MainActivity_computeFastestRoute(JNIEnv* env, jobject, js
 
 extern "C"
 JNIEXPORT jstring JNICALL
-Java_com_shun4midx_mrt_MainActivity_computeLeastInterchangeRoute(JNIEnv* env, jobject, jstring line1_code, jint st1, jstring line2_code, jint st2, jint langInt, jint ticketInt) {
+Java_com_shun4midx_mrt_MainActivity_computeLeastTransferRoute(JNIEnv* env, jobject, jstring line1_code, jint st1, jstring line2_code, jint st2, jint langInt, jint ticketInt) {
 
     const char* raw1 = env->GetStringUTFChars(line1_code, nullptr);
     std::string code1(raw1);
@@ -458,7 +458,7 @@ Java_com_shun4midx_mrt_MainActivity_computeLeastInterchangeRoute(JNIEnv* env, jo
     int day_type, now_mins;
     getTaipeiTime(&day_type, &now_mins);
 
-    std::vector<RoutedPath> results = routeLeastInterchange(src, dst, Time{now_mins / 60, now_mins % 60}, day_type, 3);
+    std::vector<RoutedPath> results = routeLeastTransfer(src, dst, Time{now_mins / 60, now_mins % 60}, day_type, 3);
 
     for (const auto& rp : results) {
         output += pathDetailsToUser(rp.path, Time{now_mins / 60, now_mins % 60}, day_type, lang, type);
@@ -609,7 +609,7 @@ Java_com_shun4midx_mrt_MainActivity_computeCustomRoute(JNIEnv *env, jobject thiz
     }
 
     rc.minimize_time = minimize_time;
-    rc.minimize_interchanges = minimize_transfers;
+    rc.minimize_transfers = minimize_transfers;
 
     std::vector<RoutedPath> results = routeCustom(src, dst, Time{now_mins / 60, now_mins % 60}, day_type, rc, 3);
 

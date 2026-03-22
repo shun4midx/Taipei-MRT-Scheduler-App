@@ -177,7 +177,7 @@ bool oneTrainReachDest(const Station& stn, const Station& dest, Train train) {
     }
 
     // Code
-    if (stn.line != dest.line) { // Need interchange
+    if (stn.line != dest.line) { // Need transfer
         return false;
     }
 
@@ -346,7 +346,7 @@ Time lastTrainTime(const Station& stn, int day_type, const Station& dest) {
 }
 
 bool isPublicHoliday(int year, int month, int day) {
-    if (year == 2026) {
+    if (year == 126) {
         std::vector<std::pair<int, int>> HOLIDAYS_2026 = {{1, 1}, {2, 15}, {2, 16}, {2, 17}, {2, 18}, {2, 19}, {2, 20}, {2, 27}, {2, 28}, {4, 3}, {4, 4}, {4, 5}, {4, 6}, {5, 1}, {6, 19}, {9, 25}, {9, 28}, {10, 9}, {10, 10}, {10, 25}, {10, 26}, {12, 25}}; // YYYYMMDD
 
         for (auto& md : HOLIDAYS_2026) {

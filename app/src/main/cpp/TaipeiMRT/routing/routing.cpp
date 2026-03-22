@@ -40,7 +40,7 @@ bool forbiddenStation(const Station& s, const RouteConstraints& c) {
     return false;
 }
 
-int countInterchanges(const Path& path) {
+int countTransfers(const Path& path) {
     int count = 0;
     bool counted_orange_branch = false;
 
@@ -169,18 +169,18 @@ bool betterThan(const RoutedPath& a, const RoutedPath& b, const RouteConstraints
             return a.total_mins < b.total_mins;
         }
 
-        if (a.interchange_count != b.interchange_count) {
-            return a.interchange_count < b.interchange_count;
+        if (a.transfer_count != b.transfer_count) {
+            return a.transfer_count < b.transfer_count;
         }
 
         // Fallback
         return a.path.size() < b.path.size();
     }
 
-    // Only interchange
-    if (!c.minimize_time && c.minimize_interchanges) {
-        if (a.interchange_count != b.interchange_count) {
-            return a.interchange_count < b.interchange_count;
+    // Only transfer
+    if (!c.minimize_time && c.minimize_transfers) {
+        if (a.transfer_count != b.transfer_count) {
+            return a.transfer_count < b.transfer_count;
         }
 
         if (a.total_mins != b.total_mins) {
@@ -206,12 +206,12 @@ bool betterThan(const RoutedPath& a, const RoutedPath& b, const RouteConstraints
 // Generate all paths without schedules, with avoid constraints applied
 // must_stations can be handled by concatenation later and must_lines is global and filtered later
 
-std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max_paths, int max_interchanges, const RouteConstraints& constraints) {
+std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max_paths, int max_transfers, const RouteConstraints& constraints) {
     if (!validStation(src) || !validStation(dst)) {
         throw std::invalid_argument("candidatePaths: invalid src/dst station");
     }
 
-    if (max_paths <= 0 || max_interchanges < 0) {
+    if (max_paths <= 0 || max_transfers < 0) {
         return {};
     }
 
@@ -245,7 +245,7 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
         CandState curr = q.front();
         q.pop();
 
-        if (curr.interchange_count > max_interchanges) {
+        if (curr.transfer_count > max_transfers) {
             continue;
         }
 
@@ -280,13 +280,13 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
         auto it = best_seen.find(state_key);
         if (it != best_seen.end()) {
             int best_inter = it->second;
-            if (best_inter <= curr.interchange_count) {
+            if (best_inter <= curr.transfer_count) {
                 continue;
             }
         }
 
-        // Store best interchange only
-        best_seen[state_key] = curr.interchange_count;
+        // Store best transfer only
+        best_seen[state_key] = curr.transfer_count;
 
         // Same line neighbors: +/- station number
         for (int delta: {-1, +1}) {
@@ -312,7 +312,7 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
 
             Path np = curr.path;
             np.push_back(next);
-            q.push({next, np, curr.interchange_count, new_checkpoint_mask, new_line_mask});
+            q.push({next, np, curr.transfer_count, new_checkpoint_mask, new_line_mask});
         }
 
         // Edge case for O line
@@ -332,10 +332,10 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
 
             Path np = curr.path;
             np.push_back(next);
-            q.push({next, np, curr.interchange_count, new_checkpoint_mask, new_line_mask});
+            q.push({next, np, curr.transfer_count, new_checkpoint_mask, new_line_mask});
         }
 
-        // Interchange neighbors
+        // Transfer neighbors
         try {
             auto transfers = getTransfers(curr.stn);
 
@@ -355,8 +355,8 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
 
                 Path np = curr.path;
                 np.push_back(to);
-                q.push({to, np, curr.interchange_count + 1, new_checkpoint_mask, new_line_mask});
-           }
+                q.push({to, np, curr.transfer_count + 1, new_checkpoint_mask, new_line_mask});
+            }
         } catch (...) {
             // No transfers or invalid transfer table -> ignore
         }
@@ -366,22 +366,22 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
 }
 
 // ======== LAYER 2: REAL LIFE PATH ======== //
-// Default: top 3 by time (tie break by interchanges), fixed candidate budget
+// Default: top 3 by time (tie break by transfers), fixed candidate budget
 std::vector<RoutedPath> routeDefault(const Station& src, const Station& dst, Time curr_time, int day_type, int k) {
     RouteConstraints c;
     c.minimize_time = true;
-    c.minimize_interchanges = true;
-    c.max_interchanges = 4;
+    c.minimize_transfers = true;
+    c.max_transfers = 4;
 
     return routeEngine(src, dst, curr_time, day_type, c, k, 6, 6);;
 }
 
-// Least interchange: top 3 by interchanges (tie-break by time), fixed candidate budget
-std::vector<RoutedPath> routeLeastInterchange(const Station& src, const Station& dst, Time curr_time, int day_type, int k) {
+// Least transfers: top 3 by transfers (tie-break by time), fixed candidate budget
+std::vector<RoutedPath> routeLeastTransfer(const Station& src, const Station& dst, Time curr_time, int day_type, int k) {
     RouteConstraints c;
     c.minimize_time = false;
-    c.minimize_interchanges = true;
-    c.max_interchanges = 4;
+    c.minimize_transfers = true;
+    c.max_transfers = 4;
 
     return routeEngine(src, dst, curr_time, day_type, c, k, 6, 6);
 }
@@ -393,7 +393,7 @@ std::vector<RoutedPath> routeCustom(const Station& src, const Station& dst, Time
                         .path = {src},
                         .times = {{curr_time, curr_time}},
                         .total_mins = 0,
-                        .interchange_count = 0
+                        .transfer_count = 0
                 }};
     }
 
@@ -433,7 +433,7 @@ std::vector<RoutedPath> routeEngine(const Station& src, const Station& dst, Time
     int cap = std::max(budget, hard_cap);
 
     for (; budget <= cap; budget *= 2) {
-        auto candidates = candidatePaths(src, dst, budget, c.max_interchanges, c);
+        auto candidates = candidatePaths(src, dst, budget, c.max_transfers, c);
 
         for (Path& p : candidates) {
             std::string key = hashPath(p);
@@ -454,7 +454,7 @@ std::vector<RoutedPath> routeEngine(const Station& src, const Station& dst, Time
                 rp.path = p;
                 rp.times = times;
                 rp.total_mins = total_mins;
-                rp.interchange_count = countInterchanges(p);
+                rp.transfer_count = countTransfers(p);
 
                 routed.push_back(rp);
             } catch (...) {

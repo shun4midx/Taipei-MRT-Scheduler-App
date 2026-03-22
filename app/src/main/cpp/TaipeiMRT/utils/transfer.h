@@ -2,7 +2,7 @@
  * Copyright (c) 2026 Shun/翔海 (@shun4midx) *
  * Project: Taipei-MRT-Scheduler            *
  * File Type: C++ Header file               *
- * File: interchange.h                      *
+ * File: transfer.h                         *
  ****************************************** */
 
 #pragma once
@@ -29,7 +29,7 @@ extern const std::unordered_map<Line, std::vector<std::vector<std::pair<Station,
 // ======== FUNCTIONS ======== //
 const StationNode* getStationNode(const Station& stn); // Get physical station node (nullptr if none)
 
-bool isInterchange(const Station& stn); // Is stn part of an interchange
+bool isTransfer(const Station& stn); // Is stn part of an transfer
 
 std::vector<std::pair<Station, int>> getTransfers(const Station& stn); // All transfers from stn
 bool canTransfer(const Station& from, const Station& to);

@@ -17,7 +17,7 @@ typedef std::vector<Station> Path;
 
 typedef std::pair<Time, Time> StationTime; // Arrival and departure time of each station
 
-typedef std::vector<StationTime> PathTimes; 
+typedef std::vector<StationTime> PathTimes;
 
 typedef std::vector<int> PathMins;
 
@@ -27,9 +27,9 @@ extern const int INVALID_DURATION;
 extern const std::unordered_map<Line, std::vector<int>> LINE_DURATION; // Duration of each station from first avail station
 
 // ======== FUNCTIONS ======== //
-int getLineDuration(const Station& stn1, const Station& stn2); // One line without interchange
+int getLineDuration(const Station& stn1, const Station& stn2); // One line without transfer
 
-int perfectPathDuration(const Path& stn_path); // Path including interchanges, but assuming 0 wait time at all steps along the way (Same station but on different lines count as different points on the path for simplicity)
+int perfectPathDuration(const Path& stn_path); // Path including transfers, but assuming 0 wait time at all steps along the way (Same station but on different lines count as different points on the path for simplicity)
 
 PathMins perfectPathETA(const Path& stn_path); // Arrival times without counting wait times at every station in the path along the way
 

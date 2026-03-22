@@ -11,19 +11,19 @@
 
 // ======== DEFINITIONS ======= //
 const std::unordered_map<Line, std::string> LINE_EMOJIS = {
-    {R, "🟥"},
-    {O, "🟧"},
-    {Y, "🟨"},
-    {G, "🟩"},
-    {BL, "🟦"},
-    {BR, "🟫"}
+        {R, "🟥"},
+        {O, "🟧"},
+        {Y, "🟨"},
+        {G, "🟩"},
+        {BL, "🟦"},
+        {BR, "🟫"}
 };
 
 const std::unordered_map<Language, std::string> MINS = {
-    {en, " min"},
-    {zh, "分鐘"},
-    {jp, "分"},
-    {kr, "분"}
+        {en, " min"},
+        {zh, "分鐘"},
+        {jp, "分"},
+        {kr, "분"}
 };
 
 // ======== MISC OUTPUT STUFF ======== //
@@ -43,7 +43,7 @@ std::string stationTimeToStr(const StationTime& st, const Language& lang) {
     } else if (lang == zh) {
         return timeToStr(st.first) + "抵達 / " + timeToStr(st.second) + "離開";
     } else if (lang == jp) {
-        return timeToStr(st.first) + "到着 / " + timeToStr(st.second) + "出発";  
+        return timeToStr(st.first) + "到着 / " + timeToStr(st.second) + "出発";
     } else if (lang == kr) {
         return timeToStr(st.first) + "도착 / " + timeToStr(st.second) + "출발";
     }
@@ -64,7 +64,7 @@ std::string pathTimesToStr(const PathTimes& pt, const Language& lang) {
 }
 
 std::string pathHeaderStr(const Path& p, const PathTimes& pt, const Language& lang, const TicketType& tt) {
-    std::string output = std::to_string(timeToMins(pt.back().second) - timeToMins(pt.front().first)) + MINS.at(lang) + " $" + std::to_string(travelPrice(p.front(), p.back(), tt)) + " ";
+    std::string output = std::to_string(timeToMins(pt.back().second) - timeToMins(pt.front().first)) + MINS.at(lang) + " $" + std::to_string(travelPrice(p.front(), p.back(), tt, timeToMins(pt.back().second) - timeToMins(pt.front().first) > 120)) + " ";
 
     if (tt == ADULT) {
         if (lang == en) {
@@ -115,7 +115,7 @@ std::string pathHeaderStr(const Path& p, const PathTimes& pt, const Language& la
 }
 
 std::string pathHeaderStr(const Path& p, const PathMins& pm, const Language& lang, const TicketType& tt) {
-    std::string output = std::to_string(pm.back() - pm.front()) + MINS.at(lang) + + " $" + std::to_string(travelPrice(p.front(), p.back(), tt)) + " ";
+    std::string output = std::to_string(pm.back() - pm.front()) + MINS.at(lang) + + " $" + std::to_string(travelPrice(p.front(), p.back(), tt, (pm.back() - pm.front() > 120))) + " ";
 
     output += LINE_EMOJIS.at(p[0].line);
 
@@ -226,8 +226,8 @@ std::string pathDetailsToUser(const Path& p, const Language& lang, const TicketT
     return namedPathMinsToStr(p, pm, lang, tt);
 }
 
-// ======== INTERCHANGE I/O TO USER ======== //
-std::string interchangeLinesToUser(const Line& a, const Line& b, const Language& lang) {
+// ======== TRANSFER I/O TO USER ======== //
+std::string transferLinesToUser(const Line& a, const Line& b, const Language& lang) {
     std::vector<std::pair<StationNode, int>> int_stns = getLineTransferStations(a, b);
 
     std::string output = "";
@@ -261,7 +261,7 @@ std::string allStnCodesToUser(const Station& stn, const Language& lang) {
     for (const Station& s : equiv_stns) {
         output += LINE_EMOJIS.at(s.line) + " " + stationToCode(s) + " ";
     }
-    
+
     if (output.length() > 0) {
         output.pop_back();
     }

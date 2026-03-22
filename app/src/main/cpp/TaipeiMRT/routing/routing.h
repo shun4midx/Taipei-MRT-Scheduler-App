@@ -17,7 +17,7 @@ typedef struct routedpath {
     Path path;
     PathTimes times; // Arrival/departure timeline
     int total_mins;
-    int interchange_count;
+    int transfer_count;
 } RoutedPath;
 
 typedef struct routeconstraints {
@@ -28,10 +28,10 @@ typedef struct routeconstraints {
 
     // Ranking pref
     bool minimize_time = true;
-    bool minimize_interchanges = true;
+    bool minimize_transfers = true;
 
     // Search limits
-    int max_interchanges = 30;
+    int max_transfers = 30;
 
     std::unordered_set<int> avoid_station_keys;
 } RouteConstraints;
@@ -39,7 +39,7 @@ typedef struct routeconstraints {
 typedef struct candstate {
     Station stn;
     Path path;
-    int interchange_count;
+    int transfer_count;
     int checkpoint_mask;
     int line_mask;
 } CandState;
@@ -48,7 +48,7 @@ typedef struct candstate {
 bool stationInList(const Station& s, const std::vector<Station>& v);
 bool forbiddenStation(const Station& s, const RouteConstraints& c);
 
-int countInterchanges(const Path& path);
+int countTransfers(const Path& path);
 bool usesLine(const Path& path, Line line);
 
 std::string hashPath(const Path& p);
@@ -60,14 +60,14 @@ bool betterThan(const RoutedPath& a, const RoutedPath& b, const RouteConstraints
 // Generate all paths without schedules, with avoid constraints applied
 // must_stations can be handled by concatenation later and must_lines is global and filtered later
 
-std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max_paths, int max_interchanges, const RouteConstraints& constraints);
+std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max_paths, int max_transfers, const RouteConstraints& constraints);
 
 // ======== LAYER 2: REAL LIFE PATH ======== //
-// Default: top 3 by time (tie break by interchanges), fixed candidate budget
+// Default: top 3 by time (tie break by transfers), fixed candidate budget
 std::vector<RoutedPath> routeDefault(const Station& src, const Station& dst, Time curr_time, int day_type, int k = 3);
 
-// Least interchange: top 3 by interchanges (tie-break by time), fixed candidate budget
-std::vector<RoutedPath> routeLeastInterchange(const Station& src, const Station& dst, Time curr_time, int day_type, int k = 3);
+// Least transfers: top 3 by transfers (tie-break by time), fixed candidate budget
+std::vector<RoutedPath> routeLeastTransfer(const Station& src, const Station& dst, Time curr_time, int day_type, int k = 3);
 
 // Custom: supports must/avoid, uses adaptive widening if needed
 std::vector<RoutedPath> routeCustom(const Station& src, const Station& dst, Time curr_time, int day_type, const RouteConstraints& constraints, int k = 3);

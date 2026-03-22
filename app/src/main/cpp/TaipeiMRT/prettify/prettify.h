@@ -39,7 +39,7 @@ std::string pathDetailsToUser(const Path& p, Time begin_time, int day_type, cons
 
 std::string pathDetailsToUser(const Path& p, const Language& lang = zh, const TicketType& tt = ADULT); // ETA not based on time
 
-// ======== INTERCHANGE I/O TO USER ======== //
-std::string interchangeLinesToUser(const Line& a, const Line& b, const Language& lang = zh); // Get the stations that you can transfer between these lines with
+// ======== TRANSFER I/O TO USER ======== //
+std::string transferLinesToUser(const Line& a, const Line& b, const Language& lang = zh); // Get the stations that you can transfer between these lines with
 
-std::string allStnCodesToUser(const Station& stn, const Language& lang = zh); // getEquivalentStations basically but outputted with the corresponding lines as the main point and also corresponding name (sometimes interchange stations are called diff names)
+std::string allStnCodesToUser(const Station& stn, const Language& lang = zh); // getEquivalentStations basically but outputted with the corresponding lines as the main point and also corresponding name (sometimes transfer stations are called diff names)

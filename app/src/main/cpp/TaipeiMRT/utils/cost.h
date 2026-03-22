@@ -24,4 +24,4 @@ extern const std::vector<std::vector<int>> PRICE_TABLE; // adult price
 
 // ======== FUNCTIONS ======== //
 int stationOrderIdx(const Station& s);
-int travelPrice(const Station& s1, const Station& s2, const TicketType& tt = ADULT);
+int travelPrice(const Station& s1, const Station& s2, const TicketType& tt = ADULT, bool exceed120 = false);
