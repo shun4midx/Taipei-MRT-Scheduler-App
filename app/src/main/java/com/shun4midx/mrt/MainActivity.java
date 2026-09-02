@@ -617,7 +617,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void topupEasyCard(int amount) {
-        setEasyCardBalance(getEasyCardBalance() + amount);
+        setEasyCardBalanceAllowNegative(getEasyCardBalance() + amount);
     }
 
     boolean spendEasyCard(int amount) {
@@ -636,9 +636,7 @@ public class MainActivity extends AppCompatActivity {
             return false; // cannot enter while negative
         }
 
-        setEasyCardBalanceAllowNegative(
-                getEasyCardBalance() - fare
-        );
+        setEasyCardBalanceAllowNegative(getEasyCardBalance() - fare);
 
         return true;
     }
@@ -1903,7 +1901,7 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
-                Toast.makeText(this,"NT$" + fare + " → EasyCard NT$" + getEasyCardBalance(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(this,"NT$" + fare + " → " + getEasyCardTitle() + " NT$" + getEasyCardBalance(), Toast.LENGTH_SHORT).show();
             });
 
             LinearLayout.LayoutParams rideParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
