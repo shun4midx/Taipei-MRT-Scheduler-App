@@ -24,6 +24,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -288,7 +290,11 @@ public class MainActivity extends AppCompatActivity {
         } else if (item.getItemId() == R.id.menu_age_group) {
             showAgeGroupDialog();
             return true;
+        } else if (item.getItemId() == R.id.menu_easycard) {
+            showEasyCardDialog();
+            return true;
         }
+
         return super.onOptionsItemSelected(item);
     }
 
@@ -351,6 +357,310 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    void styleEasyCardButton(Button button) {
+        button.setBackgroundResource(R.drawable.easycard_button_selector);
+        button.setTextColor(getColor(R.color.custom_pink));
+        button.setTypeface(button.getTypeface(), Typeface.BOLD);
+        button.setAllCaps(false);
+        button.setMinHeight(0);
+        button.setIncludeFontPadding(false);
+        button.setTextSize(20);
+        button.setPadding(20, 18, 20, 18);
+    }
+
+    void styleEasyCardTextyButton(Button button) {
+        button.setBackgroundResource(R.drawable.easycard_button_selector);
+        button.setTextColor(getColor(R.color.custom_pink));
+        button.setTypeface(button.getTypeface(), Typeface.BOLD);
+        button.setAllCaps(false);
+        button.setMinHeight(0);
+        button.setIncludeFontPadding(false);
+        button.setTextSize(16);
+        button.setPadding(20, 18, 20, 18);
+    }
+
+    String getEasyCardTitle() {
+        switch (getLanguage()) {
+            case "en": return "EasyCard";
+            case "jp": return "悠遊カード";
+            case "kr": return "이지카드";
+            default:   return "悠遊卡";
+        }
+    }
+
+    String getAmountLabel() {
+        switch (getLanguage()) {
+            case "en": return "Amount";
+            case "jp": return "金額";
+            case "kr": return "금액";
+            default:   return "金額";
+        }
+    }
+
+    String getEnterAmountHint() {
+        switch (getLanguage()) {
+            case "en": return "Enter amount";
+            case "jp": return "金額を入力";
+            case "kr": return "금액 입력";
+            default:   return "輸入金額";
+        }
+    }
+
+    String getSpendLabel() {
+        switch (getLanguage()) {
+            case "en": return "Spend";
+            case "jp": return "支払う";
+            case "kr": return "사용";
+            default:   return "扣款";
+        }
+    }
+
+    String getSetBalanceLabel() {
+        switch (getLanguage()) {
+            case "en": return "Set Balance";
+            case "jp": return "残高設定";
+            case "kr": return "잔액 설정";
+            default:   return "設定餘額";
+        }
+    }
+
+    String getTopUpLabel() {
+        switch (getLanguage()) {
+            case "en": return "Top Up";
+            case "jp": return "チャージ";
+            case "kr": return "충전";
+            default:   return "加值";
+        }
+    }
+
+    String getInsufficientBalanceLabel() {
+        switch (getLanguage()) {
+            case "en": return "Insufficient balance";
+            case "jp": return "残高が不足しています";
+            case "kr": return "잔액이 부족합니다";
+            default:   return "餘額不足";
+        }
+    }
+
+    void showEasyCardDialog() {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(50, 40, 50, 40);
+        layout.setBackgroundColor(getColor(R.color.custom_dark_blue));
+
+        TextView titleText = new TextView(this);
+        titleText.setText(getEasyCardTitle());
+        titleText.setTextSize(20);
+        titleText.setTextColor(getColor(R.color.white));
+        titleText.setPadding(0, 0, 0, 20);
+
+        TextView balanceText = new TextView(this);
+        balanceText.setTextSize(28);
+        balanceText.setTypeface(null, Typeface.BOLD);
+        balanceText.setGravity(Gravity.CENTER);
+        balanceText.setTextColor(getColor(R.color.custom_pink));
+        balanceText.setPadding(0, 10, 0, 28);
+
+        TextView amountLabel = new TextView(this);
+        amountLabel.setText(getAmountLabel());
+        amountLabel.setTextSize(16);
+        amountLabel.setTextColor(getColor(R.color.white));
+        amountLabel.setPadding(0, 20, 0, 8);
+
+        EditText amountInput = new EditText(this);
+        amountInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        amountInput.setHint(getEnterAmountHint());
+        amountInput.setTextColor(getColor(R.color.white));
+        amountInput.setHintTextColor(Color.LTGRAY);
+        amountInput.getBackground().setTint(getColor(R.color.custom_pink));
+
+        LinearLayout quickRow1 = new LinearLayout(this);
+        quickRow1.setOrientation(LinearLayout.HORIZONTAL);
+        quickRow1.setPadding(0, 0, 0, 12);
+
+        LinearLayout quickRow2 = new LinearLayout(this);
+        quickRow2.setOrientation(LinearLayout.HORIZONTAL);
+        quickRow2.setPadding(0, 0, 0, 20);
+
+        LinearLayout.LayoutParams row1Params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        row1Params.bottomMargin = 16;
+        quickRow1.setLayoutParams(row1Params);
+
+        LinearLayout.LayoutParams row2Params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        quickRow2.setLayoutParams(row2Params);
+
+        int[] row1Amounts = {1, 5, 10, 50};
+        int[] row2Amounts = {100, 500, 1000};
+
+        Runnable refreshBalance = () -> balanceText.setText("NT$" + getEasyCardBalance());
+
+        refreshBalance.run();
+
+        addQuickAmountButtons(quickRow1, row1Amounts, refreshBalance);
+        addQuickAmountButtons(quickRow2, row2Amounts, refreshBalance);
+
+        Button spendButton = new Button(this);
+        spendButton.setText(getSpendLabel());
+        styleEasyCardTextyButton(spendButton);
+
+        Button setButton = new Button(this);
+        setButton.setText(getSetBalanceLabel());
+        styleEasyCardTextyButton(setButton);
+
+        Button topUpButton = new Button(this);
+        topUpButton.setText(getTopUpLabel());
+        styleEasyCardTextyButton(topUpButton);
+
+        spendButton.setOnClickListener(v -> {
+            String text = amountInput.getText().toString();
+
+            if (!text.isEmpty()) {
+                int amount = Integer.parseInt(text);
+
+                if (!spendEasyCard(amount)) {
+                    Toast.makeText(this, getInsufficientBalanceLabel(), Toast.LENGTH_SHORT).show();
+                }
+
+                refreshBalance.run();
+                amountInput.setText("");
+            }
+        });
+
+        setButton.setOnClickListener(v -> {
+            String text = amountInput.getText().toString();
+
+            if (!text.isEmpty()) {
+                setEasyCardBalance(Integer.parseInt(text));
+                refreshBalance.run();
+                amountInput.setText("");
+            }
+        });
+
+        topUpButton.setOnClickListener(v -> {
+            String text = amountInput.getText().toString();
+
+            if (!text.isEmpty()) {
+                topupEasyCard(Integer.parseInt(text));
+                refreshBalance.run();
+                amountInput.setText("");
+            }
+        });
+
+        LinearLayout operationRow = new LinearLayout(this);
+        operationRow.setOrientation(LinearLayout.HORIZONTAL);
+        operationRow.setPadding(0, 20, 0, 14);
+
+        LinearLayout.LayoutParams opParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+        opParams.setMargins(8, 0, 8, 0);
+
+        spendButton.setLayoutParams(new LinearLayout.LayoutParams(opParams));
+        setButton.setLayoutParams(new LinearLayout.LayoutParams(opParams));
+        topUpButton.setLayoutParams(new LinearLayout.LayoutParams(opParams));
+
+        operationRow.addView(spendButton);
+        operationRow.addView(setButton);
+        operationRow.addView(topUpButton);
+
+        layout.addView(titleText);
+        layout.addView(balanceText);
+        layout.addView(quickRow1);
+        layout.addView(quickRow2);
+        layout.addView(amountLabel);
+        layout.addView(amountInput);
+        layout.addView(operationRow);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(layout)
+                .create();
+
+        dialog.show();
+    }
+
+    void addQuickAmountButtons(LinearLayout container, int[] amounts, Runnable refreshBalance) {
+        for (int amount : amounts) {
+            Button button = new Button(this);
+            button.setText("+" + amount);
+            styleEasyCardButton(button);
+
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+            params.setMargins(8, 0, 8, 0);
+
+            button.setLayoutParams(params);
+
+            button.setOnClickListener(v -> {
+                topupEasyCard(amount);
+                refreshBalance.run();
+            });
+
+            container.addView(button);
+        }
+    }
+
+    int getEasyCardBalance() {
+        return getSharedPreferences("settings", MODE_PRIVATE)
+                .getInt("easycard_balance", 0);
+    }
+
+    void setEasyCardBalance(int value) {
+        getSharedPreferences("settings", MODE_PRIVATE)
+                .edit()
+                .putInt("easycard_balance", Math.max(0, value))
+                .apply();
+    }
+
+    // For train rides only
+    void setEasyCardBalanceAllowNegative(int value) {
+        getSharedPreferences("settings", MODE_PRIVATE)
+                .edit()
+                .putInt("easycard_balance", value)
+                .apply();
+    }
+
+    void topupEasyCard(int amount) {
+        setEasyCardBalance(getEasyCardBalance() + amount);
+    }
+
+    boolean spendEasyCard(int amount) {
+        int balance = getEasyCardBalance();
+
+        if (amount > balance) {
+            return false;
+        }
+
+        setEasyCardBalance(balance - amount);
+        return true;
+    }
+
+    boolean rideEasyCard(int fare) {
+        if (getEasyCardBalance() < 0) {
+            return false; // cannot enter while negative
+        }
+
+        setEasyCardBalanceAllowNegative(
+                getEasyCardBalance() - fare
+        );
+
+        return true;
+    }
+
+    String getRideRouteLabel(int fare) {
+        switch (getLanguage()) {
+            case "en": return "Ride · NT$" + fare;
+            case "jp": return "乗車 · NT$" + fare;
+            case "kr": return "탑승 · NT$" + fare;
+            default:   return "搭乘 · NT$" + fare;
+        }
+    }
+
+    String getCannotEnterLabel() {
+        switch (getLanguage()) {
+            case "en": return "EasyCard balance is negative. Please top up before entering.";
+            case "jp": return "残高がマイナスです。入場前にチャージしてください。";
+            case "kr": return "잔액이 마이너스입니다. 탑승 전에 충전해 주세요.";
+            default:   return "悠遊卡餘額為負數，請先加值再進站。";
+        }
+    }
+
     void refreshStationSpinner() {
         if (fromLine == null || fromStation == null) {
             return;
@@ -361,19 +671,11 @@ public class MainActivity extends AppCompatActivity {
 
         LineItem item = (LineItem) fromLine.getSelectedItem();
 
-        String[] stations =
-                getStationsDisplayList(item.code, getLanguageInt());
+        String[] stations = getStationsDisplayList(item.code, getLanguageInt());
 
-        ArrayAdapter<String> stationAdapter =
-                new ArrayAdapter<>(
-                        this,
-                        R.layout.spinner_item_station,
-                        stations
-                );
+        ArrayAdapter<String> stationAdapter = new ArrayAdapter<>(this, R.layout.spinner_item_station, stations);
 
-        stationAdapter.setDropDownViewResource(
-                R.layout.spinner_item_station
-        );
+        stationAdapter.setDropDownViewResource(R.layout.spinner_item_station);
 
         fromStation.setAdapter(stationAdapter);
     }
@@ -589,8 +891,10 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
+            int fare = getFare(fromL.code, fromSt, toL.code, toSt, user_age.ordinal());
+
             runOnUiThread(() -> {
-                displayRouteResult(result);
+                displayRouteResult(result, fare);
             });
 
         }).start();
@@ -1556,6 +1860,76 @@ public class MainActivity extends AppCompatActivity {
         container.addView(tv);
     }
 
+    void displayRouteResult(String result, int fare) {
+
+        LinearLayout container = findViewById(R.id.routeResultContainer);
+        container.removeAllViews();
+
+        String[] routes = result.trim().split("\\n\\s*\\n");
+
+        for (String route : routes) {
+            String[] parts = route.split("\\n", 2);
+
+            String header = parts[0];
+            String body = parts.length > 1 ? parts[1] : "";
+
+            LinearLayout routeBlock = new LinearLayout(this);
+            routeBlock.setOrientation(LinearLayout.VERTICAL);
+
+            LinearLayout headerRow = new LinearLayout(this);
+            headerRow.setOrientation(LinearLayout.HORIZONTAL);
+            headerRow.setGravity(Gravity.CENTER_VERTICAL);
+
+            TextView headerText = new TextView(this);
+            headerText.setText(header);
+            headerText.setTextColor(getColor(R.color.custom_pink));
+            headerText.setTextSize(18);
+            headerText.setTypeface(headerText.getTypeface(), Typeface.BOLD);
+
+            LinearLayout.LayoutParams headerTextParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+            headerText.setLayoutParams(headerTextParams);
+
+            Button rideButton = new Button(this, null, 0, R.style.ModeButton);
+            rideButton.setText(getRideRouteLabel(fare));
+            styleEasyCardTextyButton(rideButton);
+
+            rideButton.setTextSize(15);
+            rideButton.setGravity(Gravity.CENTER);
+            rideButton.setPadding(18, 10, 18, 10);
+
+            rideButton.setOnClickListener(v -> {
+                if (!rideEasyCard(fare)) {
+                    Toast.makeText(this, getCannotEnterLabel(), Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                Toast.makeText(this,"NT$" + fare + " → EasyCard NT$" + getEasyCardBalance(), Toast.LENGTH_SHORT).show();
+            });
+
+            LinearLayout.LayoutParams rideParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            rideParams.setMargins(8, 0, 0, 0);
+            rideButton.setLayoutParams(rideParams);
+
+            headerRow.addView(headerText);
+            headerRow.addView(rideButton);
+
+            TextView bodyText = new TextView(this);
+            bodyText.setText(body);
+            bodyText.setTextColor(getColor(R.color.custom_pink));
+            bodyText.setTextSize(16);
+            bodyText.setPadding(0, 4, 0, 0);
+
+            routeBlock.addView(headerRow);
+            routeBlock.addView(bodyText);
+
+            LinearLayout.LayoutParams blockParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            blockParams.setMargins(12, 8, 12, 48);
+            routeBlock.setLayoutParams(blockParams);
+
+            container.addView(routeBlock);
+        }
+    }
+
     void displayManualResult(String result) {
 
         LinearLayout container = findViewById(R.id.manualResultContainer);
@@ -1887,9 +2261,10 @@ public class MainActivity extends AppCompatActivity {
         new Thread(() -> {
 
             String result = computeCustomRoute(fromL.code, fromSt, toL.code, toSt, mustStations.toArray(new String[0]), avoidStations.toArray(new String[0]), mustLines.toArray(new String[0]), avoidLines.toArray(new String[0]), minimizeTime, minimizeTransfers, getLanguageInt(), user_age.ordinal());
+            int fare = getFare(fromL.code, fromSt, toL.code, toSt, user_age.ordinal());
 
             runOnUiThread(() -> {
-                displayRouteResult(result);
+                displayRouteResult(result, fare);
             });
 
         }).start();

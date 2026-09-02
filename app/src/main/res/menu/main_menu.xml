@@ -2,6 +2,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
+        android:id="@+id/menu_easycard"
+        android:icon="@drawable/ic_easycard"
+        android:title=""
+        app:showAsAction="always" />
+
+    <item
         android:id="@+id/menu_age_group"
         android:icon="@drawable/ic_age_group"
         android:title=""

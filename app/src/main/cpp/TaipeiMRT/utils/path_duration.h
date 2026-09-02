@@ -24,7 +24,7 @@ typedef std::vector<int> PathMins;
 // ======== DATA ======== //
 extern const int INVALID_DURATION;
 
-extern const std::unordered_map<Line, std::vector<int>> LINE_DURATION; // Duration of each station from first avail station
+extern const std::unordered_map<Line, std::vector<int>> LINE_PREFIX_DURATION; // Duration of each station from first avail station
 
 // ======== FUNCTIONS ======== //
 int getLineDuration(const Station& stn1, const Station& stn2); // One line without transfer

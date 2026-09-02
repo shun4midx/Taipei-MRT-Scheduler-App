@@ -4,7 +4,10 @@
     <color name="custom_purple">#bc3fde</color>
     <color name="custom_blue">#0025cc</color>
     <color name="custom_light_blue">#5ca3ff</color>
-    <color name="custom_dark_blue">#0b259b</color>
+    <color name="custom_button_blue">#0b259b</color>
+    <color name="custom_dark_blue">#071A6D</color>
+    <color name="custom_darkish_purple">#6B0F80</color>
+    <color name="custom_dark_purple">#490859</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="transparent_blue">#DD040E39</color>
