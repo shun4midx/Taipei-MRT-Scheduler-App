@@ -146,6 +146,26 @@ void getTaipeiTime(int* day_type, int* now_mins) {
     }
 }
 
+static jobjectArray routedPathsToJava(JNIEnv* env, const std::vector<RoutedPath>& results, int now_mins, int day_type, Language lang, TicketType type) {
+    jclass resultClass = env->FindClass("com/shun4midx/mrt/RouteResult");
+    jmethodID ctor = env->GetMethodID(resultClass, "<init>", "(Ljava/lang/String;I)V");
+    jobjectArray arr = env->NewObjectArray(results.size(), resultClass, nullptr);
+
+    for (int i = 0; i < results.size(); ++i) {
+        const auto& rp = results[i];
+        std::string text = pathDetailsToUser(rp.path, minsToTime(now_mins), day_type, lang, type);
+        jstring jText = env->NewStringUTF(text.c_str());
+        jobject obj = env->NewObject(resultClass, ctor, jText, static_cast<jint>(rp.total_mins));
+
+        env->SetObjectArrayElement(arr, i, obj);
+
+        env->DeleteLocalRef(jText);
+        env->DeleteLocalRef(obj);
+    }
+
+    return arr;
+}
+
 extern "C"
 JNIEXPORT jobjectArray JNICALL
 Java_com_shun4midx_mrt_MainActivity_getNextTrainTable(JNIEnv* env, jobject, jstring line_code, jint station, jint max_rows, jint max_cols, jint langInt) {
@@ -301,7 +321,7 @@ Java_com_shun4midx_mrt_MainActivity_getNextTrainTable(JNIEnv* env, jobject, jstr
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_shun4midx_mrt_MainActivity_getFare(JNIEnv* env, jobject, jstring line1_code, jint st1, jstring line2_code, jint st2, jint ageInt) {
+Java_com_shun4midx_mrt_MainActivity_getFare(JNIEnv* env, jobject, jstring line1_code, jint st1, jstring line2_code, jint st2, jint ageInt, jboolean exceed120) {
     const char* raw1 = env->GetStringUTFChars(line1_code, nullptr);
     std::string code1(raw1);
     env->ReleaseStringUTFChars(line1_code, raw1);
@@ -333,13 +353,13 @@ Java_com_shun4midx_mrt_MainActivity_getFare(JNIEnv* env, jobject, jstring line1_
             type = ADULT;
     }
 
-    int fare = travelPrice(a, b, type);
+    int fare = travelPrice(a, b, type, exceed120 == JNI_TRUE);
 
     return (jint)fare;
 }
 
 extern "C"
-JNIEXPORT jstring JNICALL
+JNIEXPORT jobjectArray JNICALL
 Java_com_shun4midx_mrt_MainActivity_computeFastestRoute(JNIEnv* env, jobject, jstring line1_code, jint st1, jstring line2_code, jint st2, jint langInt, jint ticketInt) {
 
     const char* raw1 = env->GetStringUTFChars(line1_code, nullptr);
@@ -359,18 +379,9 @@ Java_com_shun4midx_mrt_MainActivity_computeFastestRoute(JNIEnv* env, jobject, js
     Language lang = static_cast<Language>(langInt);
 
     // Invalid
-    std::string output;
     if (sameStation(src, dst)) {
-        if (lang == en) {
-            output = "No such path available";
-        } else if (lang == zh) {
-            output = "沒有這樣的路徑";
-        } else if (lang == jp) {
-            output = "そのような道はありません";
-        } else if (lang == kr) {
-            output = "그런 길은 없어요";
-        }
-        return env->NewStringUTF(output.c_str());
+        jclass resultClass = env->FindClass("com/shun4midx/mrt/RouteResult");
+        return env->NewObjectArray(0, resultClass, nullptr);
     }
 
     // ticket type
@@ -395,16 +406,11 @@ Java_com_shun4midx_mrt_MainActivity_computeFastestRoute(JNIEnv* env, jobject, js
 
     std::vector<RoutedPath> results = routeDefault(src, dst, Time{now_mins / 60, now_mins % 60}, day_type, 3);
 
-    for (const auto& rp : results) {
-        output += pathDetailsToUser(rp.path, Time{now_mins / 60, now_mins % 60}, day_type, lang, type);
-        output += "\n\n";
-    }
-
-    return env->NewStringUTF(output.c_str());
+    return routedPathsToJava(env, results, now_mins, day_type, lang, type);
 }
 
 extern "C"
-JNIEXPORT jstring JNICALL
+JNIEXPORT jobjectArray JNICALL
 Java_com_shun4midx_mrt_MainActivity_computeLeastTransferRoute(JNIEnv* env, jobject, jstring line1_code, jint st1, jstring line2_code, jint st2, jint langInt, jint ticketInt) {
 
     const char* raw1 = env->GetStringUTFChars(line1_code, nullptr);
@@ -424,18 +430,9 @@ Java_com_shun4midx_mrt_MainActivity_computeLeastTransferRoute(JNIEnv* env, jobje
     Language lang = static_cast<Language>(langInt);
 
     // Invalid
-    std::string output;
     if (sameStation(src, dst)) {
-        if (lang == en) {
-            output = "No such path available";
-        } else if (lang == zh) {
-            output = "沒有這樣的路徑";
-        } else if (lang == jp) {
-            output = "そのような道はありません";
-        } else if (lang == kr) {
-            output = "그런 길은 없어요";
-        }
-        return env->NewStringUTF(output.c_str());
+        jclass resultClass = env->FindClass("com/shun4midx/mrt/RouteResult");
+        return env->NewObjectArray(0, resultClass, nullptr);
     }
 
     // ticket type
@@ -460,21 +457,12 @@ Java_com_shun4midx_mrt_MainActivity_computeLeastTransferRoute(JNIEnv* env, jobje
 
     std::vector<RoutedPath> results = routeLeastTransfer(src, dst, Time{now_mins / 60, now_mins % 60}, day_type, 3);
 
-    for (const auto& rp : results) {
-        output += pathDetailsToUser(rp.path, Time{now_mins / 60, now_mins % 60}, day_type, lang, type);
-        output += "\n\n";
-    }
-
-    if (output.size() > 0) {
-        output.pop_back();
-    }
-
-    return env->NewStringUTF(output.c_str());
+    return routedPathsToJava(env, results, now_mins, day_type, lang, type);
 }
 
 
 extern "C"
-JNIEXPORT jstring JNICALL
+JNIEXPORT jobjectArray JNICALL
 Java_com_shun4midx_mrt_MainActivity_computeCustomRoute(JNIEnv *env, jobject thiz, jstring from_line, jint from_station, jstring to_line, jint to_station, jobjectArray must_stations, jobjectArray avoid_stations, jobjectArray must_lines, jobjectArray avoid_lines, jboolean minimize_time, jboolean minimize_transfers, jint lang_int, jint age_group) {
     const char* raw1 = env->GetStringUTFChars(from_line, nullptr);
     std::string code1(raw1);
@@ -493,18 +481,9 @@ Java_com_shun4midx_mrt_MainActivity_computeCustomRoute(JNIEnv *env, jobject thiz
     Language lang = static_cast<Language>(lang_int);
 
     // Invalid
-    std::string output;
     if (sameStation(src, dst)) {
-        if (lang == en) {
-            output = "No such path available";
-        } else if (lang == zh) {
-            output = "沒有這樣的路徑";
-        } else if (lang == jp) {
-            output = "そのような道はありません";
-        } else if (lang == kr) {
-            output = "그런 길은 없어요";
-        }
-        return env->NewStringUTF(output.c_str());
+        jclass resultClass = env->FindClass("com/shun4midx/mrt/RouteResult");
+        return env->NewObjectArray(0, resultClass, nullptr);
     }
 
     // ticket type
@@ -613,29 +592,10 @@ Java_com_shun4midx_mrt_MainActivity_computeCustomRoute(JNIEnv *env, jobject thiz
 
     std::vector<RoutedPath> results = routeCustom(src, dst, Time{now_mins / 60, now_mins % 60}, day_type, rc, 3);
 
-    for (const auto& rp : results) {
-        output += pathDetailsToUser(rp.path, Time{now_mins / 60, now_mins % 60}, day_type, lang, type);
-        output += "\n\n";
-    }
-
-    if (output.size() > 0) {
-        output.pop_back();
-    } else {
-        if (lang == en) {
-            output = "No such path available";
-        } else if (lang == zh) {
-            output = "沒有這樣的路徑";
-        } else if (lang == jp) {
-            output = "そのような道はありません";
-        } else if (lang == kr) {
-            output = "그런 길은 없어요";
-        }
-    }
-
-    return env->NewStringUTF(output.c_str());
+    return routedPathsToJava(env, results, now_mins, day_type, lang, type);
 }
 extern "C"
-JNIEXPORT jstring JNICALL
+JNIEXPORT jobject JNICALL
 Java_com_shun4midx_mrt_MainActivity_computeManualPath(JNIEnv *env, jobject thiz, jobjectArray stations, jint lang, jint age_group) {
     int count = env->GetArrayLength(stations);
     std::vector<Station> stn_path;
@@ -675,19 +635,26 @@ Java_com_shun4midx_mrt_MainActivity_computeManualPath(JNIEnv *env, jobject thiz,
     getTaipeiTime(&day_type, &now_mins);
 
     // Evaluate
-    std::string output;
+    jclass resultClass = env->FindClass("com/shun4midx/mrt/RouteResult");
+
     try {
-        output = pathDetailsToUser(stn_path, Time{now_mins / 60, now_mins % 60}, day_type, static_cast<const Language>(lang), type);
-    } catch (...) {
-        if (lang == en) {
-            output = "No such path available";
-        } else if (lang == zh) {
-            output = "沒有這樣的路徑";
-        } else if (lang == jp) {
-            output = "そのような道はありません";
-        } else if (lang == kr) {
-            output = "그런 길은 없어요";
+        Time startTime = minsToTime(now_mins);
+
+        std::string output = pathDetailsToUser(stn_path, startTime, day_type, static_cast<Language>(lang), type);
+
+        PathTimes pt = pathETA(stn_path, startTime, day_type);
+        if (pt.empty()) {
+            return env->NewObjectArray(0, resultClass, nullptr);
         }
+
+        int durationMinutes = timeToMins(pt.back().second) - timeToMins(pt.front().first);
+        jobjectArray arr = env->NewObjectArray(1, resultClass, nullptr);
+        jmethodID ctor = env->GetMethodID(resultClass, "<init>", "(Ljava/lang/String;I)V");
+        jstring jText = env->NewStringUTF(output.c_str());
+        jobject obj = env->NewObject(resultClass, ctor, jText, static_cast<jint>(durationMinutes));
+        env->DeleteLocalRef(jText);
+        return obj;
+    } catch (...) {
+        return nullptr;
     }
-    return env->NewStringUTF(output.c_str());
 }

@@ -878,21 +878,19 @@ public class MainActivity extends AppCompatActivity {
 
         new Thread(() -> {
 
-            String result;
+            RouteResult[] results;
 
             if (currentStrategy == RouteStrategy.FASTEST) {
-                result = computeFastestRoute(fromL.code, fromSt, toL.code, toSt, getLanguageInt(), user_age.ordinal());
+                results = computeFastestRoute(fromL.code, fromSt, toL.code, toSt, getLanguageInt(), user_age.ordinal());
             } else if (currentStrategy == RouteStrategy.LEAST_TRANSFER) {
-                result = computeLeastTransferRoute(fromL.code, fromSt, toL.code, toSt, getLanguageInt(), user_age.ordinal());
+                results = computeLeastTransferRoute(fromL.code, fromSt, toL.code, toSt, getLanguageInt(), user_age.ordinal());
             } else {
                 clearRouteResult();
                 return;
             }
 
-            int fare = getFare(fromL.code, fromSt, toL.code, toSt, user_age.ordinal());
-
             runOnUiThread(() -> {
-                displayRouteResult(result, fare);
+                displayRouteResult(results, fromL, fromSt, toL, toSt);
             });
 
         }).start();
@@ -1175,15 +1173,9 @@ public class MainActivity extends AppCompatActivity {
         }
 
         new Thread(() -> {
-
-            String result = computeManualPath(
-                    stations.toArray(new String[0]),
-                    getLanguageInt(),
-                    user_age.ordinal()
-            );
-
+            RouteResult result = computeManualPath(stations.toArray(new String[0]), getLanguageInt(), user_age.ordinal());
             runOnUiThread(() -> {
-                displayManualResult(result);
+                displayManualResult(result, stations);
             });
 
         }).start();
@@ -1212,15 +1204,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         new Thread(() -> {
-
-            String result = computeManualPath(
-                    stations.toArray(new String[0]),
-                    getLanguageInt(),
-                    user_age.ordinal()
-            );
-
-            runOnUiThread(() -> displayManualResult(result));
-
+            RouteResult result = computeManualPath(stations.toArray(new String[0]), getLanguageInt(), user_age.ordinal());
+            runOnUiThread(() -> displayManualResult(result, stations));
         }).start();
     }
 
@@ -1808,9 +1793,9 @@ public class MainActivity extends AppCompatActivity {
         if (fromSt < 0 || toSt < 0) return;
 
         // Call JNI fare function(s)
-        int adult  = getFare(fromL.code, fromSt, toL.code, toSt, ADULT.ordinal());
-        int child  = getFare(fromL.code, fromSt, toL.code, toSt, CHILD.ordinal());
-        int elderly= getFare(fromL.code, fromSt, toL.code, toSt, ELDERLY.ordinal());
+        int adult  = getFare(fromL.code, fromSt, toL.code, toSt, ADULT.ordinal(), false);
+        int child  = getFare(fromL.code, fromSt, toL.code, toSt, CHILD.ordinal(), false);
+        int elderly= getFare(fromL.code, fromSt, toL.code, toSt, ELDERLY.ordinal(), false);
 
         String[] labels = getFareRowLabels();
         addCostRow(labels[0], adult);
@@ -1858,15 +1843,13 @@ public class MainActivity extends AppCompatActivity {
         container.addView(tv);
     }
 
-    void displayRouteResult(String result, int fare) {
-
+    void displayRouteResult(RouteResult[] routes, LineItem fromL, int fromSt, LineItem toL, int toSt) {
         LinearLayout container = findViewById(R.id.routeResultContainer);
         container.removeAllViews();
 
-        String[] routes = result.trim().split("\\n\\s*\\n");
-
-        for (String route : routes) {
-            String[] parts = route.split("\\n", 2);
+        for (RouteResult route : routes) {
+            int fare = getFare(fromL.code, fromSt, toL.code, toSt, user_age.ordinal(), route.durationMinutes > 120);
+            String[] parts = route.text.split("\\n", 2);
 
             String header = parts[0];
             String body = parts.length > 1 ? parts[1] : "";
@@ -1880,7 +1863,7 @@ public class MainActivity extends AppCompatActivity {
 
             TextView headerText = new TextView(this);
             headerText.setText(header);
-            headerText.setTextColor(getColor(R.color.custom_pink));
+            headerText.setTextColor(getColor(R.color.custom_purple));
             headerText.setTextSize(18);
             headerText.setTypeface(headerText.getTypeface(), Typeface.BOLD);
 
@@ -1929,7 +1912,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void displayManualResult(String result) {
-
         LinearLayout container = findViewById(R.id.manualResultContainer);
         container.removeAllViews();
 
@@ -1940,6 +1922,92 @@ public class MainActivity extends AppCompatActivity {
         tv.setPadding(12, 12, 12, 12);
 
         container.addView(tv);
+    }
+
+    void displayManualResult(RouteResult route, List<String> stations) {
+        LinearLayout container = findViewById(R.id.manualResultContainer);
+        container.removeAllViews();
+
+        if (route == null || stations.size() < 2) {
+            return;
+        }
+
+        String fromCode = stations.get(0);
+        String toCode = stations.get(stations.size() - 1);
+
+        int fromDigit = 0;
+        while (fromDigit < fromCode.length() && !Character.isDigit(fromCode.charAt(fromDigit))) {
+            ++fromDigit;
+        }
+
+        int toDigit = 0;
+        while (toDigit < toCode.length() && !Character.isDigit(toCode.charAt(toDigit))) {
+            ++toDigit;
+        }
+
+        String fromLine = fromCode.substring(0, fromDigit);
+        int fromSt = Integer.parseInt(fromCode.substring(fromDigit));
+
+        String toLine = toCode.substring(0, toDigit);
+        int toSt = Integer.parseInt(toCode.substring(toDigit));
+
+        int fare = getFare(fromLine, fromSt, toLine, toSt, user_age.ordinal(), route.durationMinutes > 120);
+
+        String[] parts = route.text.split("\\n", 2);
+
+        String header = parts[0];
+        String body = parts.length > 1 ? parts[1] : "";
+
+        LinearLayout routeBlock = new LinearLayout(this);
+        routeBlock.setOrientation(LinearLayout.VERTICAL);
+
+        LinearLayout headerRow = new LinearLayout(this);
+        headerRow.setOrientation(LinearLayout.HORIZONTAL);
+        headerRow.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView headerText = new TextView(this);
+        headerText.setText(header);
+        headerText.setTextColor(getColor(R.color.custom_purple));
+        headerText.setTextSize(18);
+        headerText.setTypeface(headerText.getTypeface(), Typeface.BOLD);
+        LinearLayout.LayoutParams headerTextParams =new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+        headerText.setLayoutParams(headerTextParams);
+
+        Button rideButton = new Button(this, null, 0, R.style.ModeButton);
+        rideButton.setText(getRideRouteLabel(fare));
+        styleEasyCardTextyButton(rideButton);
+        rideButton.setTextSize(15);
+        rideButton.setGravity(Gravity.CENTER);
+        rideButton.setPadding(18, 10, 18, 10);
+        rideButton.setOnClickListener(v -> {
+            if (!rideEasyCard(fare)) {
+                Toast.makeText(this, getCannotEnterLabel(), Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Toast.makeText(this, "NT$" + fare + " → " + getEasyCardTitle() + " NT$" + getEasyCardBalance(), Toast.LENGTH_SHORT).show();
+        });
+
+        LinearLayout.LayoutParams rideParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        rideParams.setMargins(8, 0, 0, 0);
+        rideButton.setLayoutParams(rideParams);
+
+        headerRow.addView(headerText);
+        headerRow.addView(rideButton);
+
+        TextView bodyText = new TextView(this);
+        bodyText.setText(body);
+        bodyText.setTextColor(getColor(R.color.custom_pink));
+        bodyText.setTextSize(16);
+        bodyText.setPadding(0, 4, 0, 0);
+
+        routeBlock.addView(headerRow);
+        routeBlock.addView(bodyText);
+
+        LinearLayout.LayoutParams blockParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        blockParams.setMargins(12, 8, 12, 48);
+        routeBlock.setLayoutParams(blockParams);
+
+        container.addView(routeBlock);
     }
 
     void addMustStationRow() {
@@ -2258,11 +2326,9 @@ public class MainActivity extends AppCompatActivity {
 
         new Thread(() -> {
 
-            String result = computeCustomRoute(fromL.code, fromSt, toL.code, toSt, mustStations.toArray(new String[0]), avoidStations.toArray(new String[0]), mustLines.toArray(new String[0]), avoidLines.toArray(new String[0]), minimizeTime, minimizeTransfers, getLanguageInt(), user_age.ordinal());
-            int fare = getFare(fromL.code, fromSt, toL.code, toSt, user_age.ordinal());
-
+            RouteResult[] results = computeCustomRoute(fromL.code, fromSt, toL.code, toSt, mustStations.toArray(new String[0]), avoidStations.toArray(new String[0]), mustLines.toArray(new String[0]), avoidLines.toArray(new String[0]), minimizeTime, minimizeTransfers, getLanguageInt(), user_age.ordinal());
             runOnUiThread(() -> {
-                displayRouteResult(result, fare);
+                displayRouteResult(results, fromL, fromSt, toL, toSt);
             });
 
         }).start();
@@ -2289,11 +2355,11 @@ public class MainActivity extends AppCompatActivity {
 
     public native String[][] getNextTrainTable(String line_code, int station, int maxRows, int maxCols, int lang);
 
-    public native int getFare(String line1, int st1, String line2, int st2, int ageGroup);
+    public native int getFare(String line1, int st1, String line2, int st2, int ageGroup, boolean exceed120);
 
-    public native String computeFastestRoute(String fromLine, int fromStation, String toLine, int toStation, int lang, int ticketType);
-    public native String computeLeastTransferRoute(String fromLine, int fromStation, String toLine, int toStation, int lang, int ticketType);
-    public native String computeCustomRoute(String fromLine, int fromStation, String toLine, int toStation, String[] mustStations, String[] avoidStations, String[] mustLines, String[] avoidLines, boolean minimizeTime, boolean minimizeTransfers, int lang_int, int ageGroup);
+    public native RouteResult[] computeFastestRoute(String fromLine, int fromStation, String toLine, int toStation, int lang, int ticketType);
+    public native RouteResult[] computeLeastTransferRoute(String fromLine, int fromStation, String toLine, int toStation, int lang, int ticketType);
+    public native RouteResult[] computeCustomRoute(String fromLine, int fromStation, String toLine, int toStation, String[] mustStations, String[] avoidStations, String[] mustLines, String[] avoidLines, boolean minimizeTime, boolean minimizeTransfers, int lang_int, int ageGroup);
 
-    public native String computeManualPath(String[] stations, int lang, int ageGroup);
+    public native RouteResult computeManualPath(String[] stations, int lang, int ageGroup);
 }
