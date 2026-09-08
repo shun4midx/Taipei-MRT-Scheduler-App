@@ -19,5 +19,7 @@ public class MapFullscreenActivity extends AppCompatActivity {
 
         int mapRes = getIntent().getIntExtra("mapRes", 0);
         map.setImageResource(mapRes);
+
+        map.setScaleLevels(1.0f, 5.0f, 15.0f);
     }
 }

@@ -17,7 +17,7 @@ typedef std::vector<Station> Path;
 
 typedef std::pair<Time, Time> StationTime; // Arrival and departure time of each station
 
-typedef std::vector<StationTime> PathTimes;
+typedef std::vector<StationTime> PathTimes; 
 
 typedef std::vector<int> PathMins;
 

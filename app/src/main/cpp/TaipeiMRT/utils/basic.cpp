@@ -28,7 +28,7 @@ const Time INVALID_TIME = Time{-1, -1};
 // For convenience, we make the array index align with the number of the station (except for orange line, that's an exception, for O50 branch we minus 50)
 std::vector<std::unordered_map<Language, std::string>> R_NAMES = {
     {{zh, INVALID}, {en, INVALID}, {jp, INVALID}, {kr, INVALID}},
-    {{zh, INVALID}, {en, INVALID}, {jp, INVALID}, {kr, INVALID}},
+    {{zh, "廣慈/奉天宮"}, {en, "Guangci/Fengtian Temple"}, {jp, "広慈/奉天宮"}, {kr, "광츠/펑톈궁"}}, // R01
     {{zh, "象山"}, {en, "Xiangshan"}, {jp, "象山"}, {kr, "샹산"}}, // R02
     {{zh, "台北101/世貿"}, {en, "Taipei 101/World Trade Center"}, {jp, "台北101/世界貿易センター"}, {kr, "타이베이101/세계무역센터"}}, // R03
     {{zh, "信義安和"}, {en, "Xinyi Anhe"}, {jp, "信義安和"}, {kr, "신이 안허"}}, // R04

@@ -356,7 +356,7 @@ std::vector<Path> candidatePaths(const Station& src, const Station& dst, int max
                 Path np = curr.path;
                 np.push_back(to);
                 q.push({to, np, curr.transfer_count + 1, new_checkpoint_mask, new_line_mask});
-            }
+        }
         } catch (...) {
             // No transfers or invalid transfer table -> ignore
         }
@@ -466,12 +466,12 @@ std::vector<RoutedPath> routeEngine(const Station& src, const Station& dst, Time
         if (!c.must_lines.empty()) {
             routed.erase(
                     std::remove_if(routed.begin(), routed.end(),
-                                   [&](const RoutedPath& rp) {
-                                       for (Line l : c.must_lines) {
-                                           if (!usesLine(rp.path, l)) return true;
-                                       }
-                                       return false;
-                                   }
+                                [&](const RoutedPath& rp) {
+                                    for (Line l : c.must_lines) {
+                                        if (!usesLine(rp.path, l)) return true;
+                                    }
+                                    return false;
+                                }
                     ),
                     routed.end()
             );
@@ -479,9 +479,9 @@ std::vector<RoutedPath> routeEngine(const Station& src, const Station& dst, Time
 
         // Rank current pool
         std::sort(routed.begin(), routed.end(),
-                  [&](const RoutedPath& a, const RoutedPath& b) {
-                      return betterThan(a, b, c);
-                  }
+                [&](const RoutedPath& a, const RoutedPath& b) {
+                    return betterThan(a, b, c);
+                }
         );
 
         // keep pool small (SUPER important)
@@ -502,9 +502,9 @@ std::vector<RoutedPath> routeEngine(const Station& src, const Station& dst, Time
 
     // Rank final pool
     std::sort(routed.begin(), routed.end(),
-              [&](const RoutedPath& a, const RoutedPath& b) {
-                  return betterThan(a, b, c);
-              }
+            [&](const RoutedPath& a, const RoutedPath& b) {
+                return betterThan(a, b, c);
+            }
     );
 
     if (routed.size() > k) {

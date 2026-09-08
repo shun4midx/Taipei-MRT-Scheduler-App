@@ -125,7 +125,6 @@ std::vector<Train> loadStationSchedule(const Station& stn, int day_type) {
     // Find correct file
     // Reads arrival_times/generated/{LINE}/{STATION}_{DAYS}.csv
     std::string file_name = DATA_DIR + "/arrival_times/generated/" + LINE_TO_STR.at(stn.line) + "/" + stationToCode(stn) + "_" + dayGroup(stn.line, day_type) + ".csv";
-
     std::cerr << "DATA_DIR = " << DATA_DIR << std::endl;
 
     std::ifstream fin(file_name);

@@ -12,7 +12,7 @@ std::string DATA_DIR;
 const std::vector<Line> LINE_ORDER = {R, O, Y, G, BL, BR};
 
 const std::unordered_map<Line, std::vector<Station>> ARRIVAL_DESTS = {
-        {R, {Station{R, 2}, Station{R, 28}, Station{R, 5}, Station{R, 22}}},
+        {R, {Station{R, 1}, Station{R, 28}, Station{R, 5}, Station{R, 22}}},
         {O, {Station{O, 1}, Station{O, 21}, Station{O, 54}}},
         {Y, {Station{Y, 7}, Station{Y, 20}}},
         {G, {Station{G, 1}, Station{G, 19}, Station{G, 8}}},
