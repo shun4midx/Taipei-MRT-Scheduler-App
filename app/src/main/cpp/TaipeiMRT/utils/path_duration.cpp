@@ -175,13 +175,25 @@ PathTimes pathETA(const Path& stn_path, Time curr_time, int day_type) {
 
         if (stn_path[i].line == stn_path[i + 1].line) { // Take a train
             try {
-                // Calculate train arrival time and then calculate the time it'll take that train to reach i + 1
-                // Fill "departure time"
-                temp.second = nextTrainTime(stn_path[i], day_type, temp.first, stn_path[i + 1]);
+                bool synthetic_line = stn_path[i].line == BR || stn_path[i].line == LB;
+                bool continuing_same_train = false;
+
+                if (synthetic_line && i > 0) {
+                    bool same_line_before = stn_path[i - 1].line == stn_path[i].line;
+                    bool same_direction = (stn_path[i - 1].stn_num < stn_path[i].stn_num && stn_path[i].stn_num < stn_path[i + 1].stn_num) || (stn_path[i - 1].stn_num > stn_path[i].stn_num && stn_path[i].stn_num > stn_path[i + 1].stn_num);
+
+                    continuing_same_train = same_line_before && same_direction;
+                }
+
+                if (continuing_same_train) {
+                    // Already on the same BR/LB train
+                    temp.second = temp.first;
+                } else {
+                    // Need to board a train
+                    temp.second = nextTrainTime(stn_path[i], day_type, temp.first, stn_path[i + 1]);
+                }
 
                 arrival_times.push_back(temp);
-
-                // Next temp
                 temp.first = minsAfter(temp.second, getLineDuration(stn_path[i], stn_path[i + 1]));
             } catch (const std::exception& e) {
                 throw std::invalid_argument("No valid path from stn_path[" + std::to_string(i) + "] to stn_path[" + std::to_string(i + 1) + "]");
