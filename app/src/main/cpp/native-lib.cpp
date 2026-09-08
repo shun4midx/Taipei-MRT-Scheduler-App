@@ -9,7 +9,7 @@
 
 std::string DATA_DIR;
 
-const std::vector<Line> LINE_ORDER = {R, O, Y, G, BL, BR};
+const std::vector<Line> LINE_ORDER = {R, O, Y, G, LB, BL, BR};
 
 const std::unordered_map<Line, std::vector<Station>> ARRIVAL_DESTS = {
         {R, {Station{R, 1}, Station{R, 28}, Station{R, 5}, Station{R, 22}}},
@@ -17,7 +17,8 @@ const std::unordered_map<Line, std::vector<Station>> ARRIVAL_DESTS = {
         {Y, {Station{Y, 7}, Station{Y, 20}}},
         {G, {Station{G, 1}, Station{G, 19}, Station{G, 8}}},
         {BL, {Station{BL, 1}, Station{BL, 23}, Station{BL, 5}, Station{BL, 21}}},
-        {BR, {Station{BR, 1}, Station{BR, 24}}}
+        {BR, {Station{BR, 1}, Station{BR, 24}}},
+        {LB, {Station{LB, 1}, Station{LB, 12}}}
 };
 
 extern "C"
@@ -190,7 +191,7 @@ Java_com_shun4midx_mrt_MainActivity_getNextTrainTable(JNIEnv* env, jobject, jstr
         table_times.push_back({});
     }
 
-    if (validStation(stn) && stn.line != BR) {
+    if (validStation(stn) && stn.line != BR && stn.line != LB) {
         std::vector<Train> train_schedule = loadStationSchedule(stn, day_type);
 
         // Find the closest entry that has time >= now_mins
@@ -235,7 +236,7 @@ Java_com_shun4midx_mrt_MainActivity_getNextTrainTable(JNIEnv* env, jobject, jstr
 
     std::vector<std::vector<Time>> first_last_times;
 
-    if (l == BR) {
+    if (l == BR || l == LB) {
         switch (lang) {
             case en:
                 first_label = "First: ";
@@ -279,7 +280,7 @@ Java_com_shun4midx_mrt_MainActivity_getNextTrainTable(JNIEnv* env, jobject, jstr
                 if (j != 0) {
                     if (j - 1 < table_times[i].size() && table_times[i][j - 1] >= 0) {
                         s = std::to_string(table_times[i][j - 1]) + MINS.at(lang);
-                    } else if (l != BR) {
+                    } else if (l != BR && l != LB) {
                         s = "––";
                     } else { // BR
                         // Output label

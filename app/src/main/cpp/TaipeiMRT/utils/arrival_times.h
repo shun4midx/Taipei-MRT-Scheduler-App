@@ -28,6 +28,9 @@ typedef struct train {
 // ======== DEFINITIONS ======== //
 extern const std::vector<std::vector<Time>> BR_FIRST_TRAINS;
 extern const std::vector<std::vector<Time>> BR_LAST_TRAINS;
+extern const std::vector<std::vector<Time>> LB_FIRST_TRAINS_WEEKDAY;
+extern const std::vector<std::vector<Time>> LB_FIRST_TRAINS_HOLIDAY;
+extern const std::vector<std::vector<Time>> LB_LAST_TRAINS;
 
 // ======== LOADING ======== //
 std::string dayGroup(const Line& line, int day_type);

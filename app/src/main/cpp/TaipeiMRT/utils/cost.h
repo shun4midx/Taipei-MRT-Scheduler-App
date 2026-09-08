@@ -22,6 +22,11 @@ extern const std::unordered_map<int, int> ADULT_TO_ELDERLY_PRICE;
 
 extern const std::vector<std::vector<int>> PRICE_TABLE; // adult price
 
+extern const std::vector<std::vector<int>> LB_PRICE_TABLE; // adult price
+
 // ======== FUNCTIONS ======== //
+int applyTicketType(int adult_price, const TicketType& tt);
 int stationOrderIdx(const Station& s);
+int lbAdultPrice(const Station& s1, const Station& s2);
+int taipeiMetroPrice(const Station& s1, const Station& s2, const TicketType& tt = ADULT, bool exceed120 = false);
 int travelPrice(const Station& s1, const Station& s2, const TicketType& tt = ADULT, bool exceed120 = false);

@@ -16,6 +16,7 @@ const std::unordered_map<Line, std::string> LINE_EMOJIS = {
         {Y, "🟨"},
         {G, "🟩"},
         {BL, "🟦"},
+        {LB, "💠"},
         {BR, "🟫"}
 };
 
@@ -141,12 +142,17 @@ std::string namedPathTimesToStr(const Path& p, const PathTimes& pt, const Langua
     std::string result = pathHeaderStr(p, pt, lang, tt);
 
     bool brown_warning = false;
+    bool lb_warning = false;
 
     for (int i = 0; i < p.size(); ++i) {
         result += prettifyStation(p[i], lang) + colon(lang) + stationTimeToStr(pt[i], lang) + "\n";
 
         if (p[i].line == BR) {
             brown_warning = true;
+        }
+
+        if (p[i].line == LB) {
+            lb_warning = true;
         }
     }
 
@@ -159,6 +165,18 @@ std::string namedPathTimesToStr(const Path& p, const PathTimes& pt, const Langua
             result += "⚠️ 上記の文湖線（茶色の線）の列車の到着時間は最悪の状況下で計算されており、実際の路線状況を反映するものではありません。\n";
         } else if (lang == kr) {
             result += "⚠️ 위에 표시된 원후선(갈색선) 열차 도착 시간은 최악의 상황을 가정하여 계산된 것이며 실제 운행 상황을 반영하지 않습니다.\n";
+        }
+    }
+
+    if (lb_warning) {
+        if (lang == en) {
+            result += "⚠️ The train arrival times for the Sanying (light blue) line stations are the WORST CASE SCENARIO only and do not reflect current conditions.\n";
+        } else if (lang == zh) {
+            result += "⚠️ 以上顯示三鶯線的列車到達時間，都是以最壞狀況計算，且並非反映現實路線狀況。\n";
+        } else if (lang == jp) {
+            result += "⚠️ 上記の三鶯線（ライトブルー線）の列車の到着時間は最悪の状況下で計算されており、実際の路線状況を反映するものではありません。\n";
+        } else if (lang == kr) {
+            result += "⚠️ 위에 표시된 산잉선(라이트블루선) 열차 도착 시간은 최악의 상황을 가정하여 계산된 것이며 실제 운행 상황을 반영하지 않습니다.\n";
         }
     }
 

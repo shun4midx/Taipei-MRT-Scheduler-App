@@ -934,22 +934,22 @@ public class MainActivity extends AppCompatActivity {
         switch (getLanguage()) {
             case "kr":
                 footer.setText(
-                        "⚠️위에 표시된 원후선(갈색선) 열차 도착 시간은 최악의 상황을 가정하여 계산된 것이며 실제 운행 상황을 반영하지 않습니다."
+                        "⚠️위에 표시된 원후선(갈색선) 및 산잉선(라이트블루선) 열차 도착 시간은 최악의 상황을 가정하여 계산된 것이며 실제 운행 상황을 반영하지 않습니다."
                 );
                 break;
             case "jp":
                 footer.setText(
-                        "⚠️上記の文湖線（茶色の線）の列車の到着時間は最悪の状況下で計算されており、実際の路線状況を反映するものではありません。"
+                        "⚠️上記の文湖線（茶色の線）と三鶯線（ライトブルー線）の列車の到着時間は最悪の状況下で計算されており、実際の路線状況を反映するものではありません。"
                 );
                 break;
             case "en":
                 footer.setText(
-                        "⚠️ The train arrival times for the brown line stations are worst-case estimates and do not reflect real conditions."
+                        "⚠️ The train arrival times for the brown and light blue line stations are worst-case estimates and do not reflect real conditions."
                 );
                 break;
             default: // zh
                 footer.setText(
-                        "⚠️以上顯示文湖線的列車到達時間，皆為最壞情況估計，並非即時路況。"
+                        "⚠️以上顯示文湖線和三鶯線的列車到達時間，皆為最壞情況估計，並非即時路況。"
                 );
         }
     }
@@ -2284,6 +2284,7 @@ public class MainActivity extends AppCompatActivity {
             case "Y":  return getColor(R.color.line_yellow);
             case "G":  return getColor(R.color.line_green);
             case "BL": return getColor(R.color.line_blue);
+            case "LB": return getColor(R.color.line_light_blue);
             case "BR": return getColor(R.color.line_brown);
             default:   return Color.GRAY;
         }

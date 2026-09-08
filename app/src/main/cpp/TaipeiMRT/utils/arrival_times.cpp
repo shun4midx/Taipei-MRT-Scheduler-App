@@ -76,6 +76,55 @@ const std::vector<std::vector<Time>> BR_LAST_TRAINS = {
     {INVALID_TIME, Time{24, 0}} // BR24
 };
 
+const std::vector<std::vector<Time>> LB_FIRST_TRAINS_WEEKDAY = {
+        {INVALID_TIME, INVALID_TIME},
+        {Time{6, 0}, INVALID_TIME}, // LB01
+        {Time{6, 2}, Time{6, 3}}, // LB02
+        {Time{6, 0}, Time{6, 0}}, // LB03
+        {Time{6, 3}, Time{6, 3}}, // LB04
+        {Time{6, 0}, Time{6, 0}}, // LB05
+        {Time{6, 3}, Time{6, 3}}, // LB06
+        {Time{6, 0}, Time{6, 0}}, // LB07
+        {Time{6, 5}, Time{6, 0}}, // LB08
+        {Time{6, 0}, Time{6, 3}}, // LB09
+        {Time{6, 2}, Time{6, 0}}, // LB10
+        {Time{6, 0}, Time{6, 3}}, // LB11
+        {INVALID_TIME, Time{6, 0}} // LB12
+};
+
+const std::vector<std::vector<Time>> LB_FIRST_TRAINS_HOLIDAY = {
+        {INVALID_TIME, INVALID_TIME},
+        {Time{6, 0}, INVALID_TIME}, // LB01
+        {Time{6, 2}, Time{6, 3}}, // LB02
+        {Time{6, 0}, Time{6, 0}}, // LB03
+        {Time{6, 3}, Time{6, 6}}, // LB04
+        {Time{6, 5}, Time{6, 3}}, // LB05
+        {Time{6, 0}, Time{6, 0}}, // LB06
+        {Time{6, 3}, Time{6, 0}}, // LB07
+        {Time{6, 0}, Time{6, 2}}, // LB08
+        {Time{6, 2}, Time{6, 0}}, // LB09
+        {Time{6, 0}, Time{6, 6}}, // LB10
+        {Time{6, 4}, Time{6, 3}}, // LB11
+        {INVALID_TIME, Time{6, 0}} // LB12
+};
+
+const std::vector<std::vector<Time>> LB_LAST_TRAINS = {
+        {INVALID_TIME, INVALID_TIME},
+        {Time{24, 0}, INVALID_TIME}, // LB01
+        {Time{24, 2}, Time{24, 31}}, // LB02
+        {Time{24, 5}, Time{24, 28}}, // LB03
+        {Time{24, 8}, Time{24, 25}}, // LB04
+        {Time{24, 11}, Time{24, 23}}, // LB05
+        {Time{24, 14}, Time{24, 20}}, // LB06
+        {Time{24, 17}, Time{24, 16}}, // LB07
+        {Time{24, 22}, Time{24, 11}}, // LB08
+        {Time{24, 25}, Time{24, 9}}, // LB09
+        {Time{24, 27}, Time{24, 6}}, // LB10
+        {Time{24, 31}, Time{24, 3}}, // LB11
+        {INVALID_TIME, Time{24, 0}} // LB12
+};
+
+
 // ======== LOADING ======== //
 std::string dayGroup(const Line& line, int day_type) {
     if (day_type <= 0 || day_type > 7) {
@@ -107,7 +156,7 @@ std::vector<std::string> split(const std::string& s) {
     return out;
 }
 
-// Rmb to have exception for BR line
+// Rmb to have exception for BR/LB line
 std::vector<Train> loadStationSchedule(const Station& stn, int day_type) {
     // Detect wrong inputs
     if (day_type <= 0 || day_type > 7) {
@@ -118,8 +167,8 @@ std::vector<Train> loadStationSchedule(const Station& stn, int day_type) {
         throw std::invalid_argument("Invalid station");
     }
 
-    if (stn.line == BR) {
-        throw std::invalid_argument("BR line stations don't have station schedules provided, we only have a rough estimate of how many minutes are between trains.");
+    if (stn.line == BR || stn.line == LB) {
+        throw std::invalid_argument("BR/LB line stations don't have station schedules provided, we only have a rough estimate of how many minutes are between trains.");
     }
 
     // Find correct file
@@ -254,9 +303,56 @@ Time nextTrainTime(const Station& stn, int day_type, int now_mins, const Station
             if (now_mins >= timeToMins(Time{23, 0})) {
                 return minsToTime(now_mins + 12);
             } else if (day_type <= 5 && ((now_mins >= timeToMins(Time{7, 0}) && now_mins <= timeToMins(Time{9, 0})) || (now_mins >= timeToMins(Time{17, 0}) && now_mins <= timeToMins(Time{19, 30})))) {
-                return minsToTime(now_mins + 4);
+                Time estimated = minsToTime(now_mins + 4);
+
+                if (timeToMins(estimated) > timeToMins(last_br_train)) {
+                    return last_br_train;
+                }
+
+                return estimated;
             } else {
-                return minsToTime(now_mins + 10);
+                Time estimated = minsToTime(now_mins + 10);
+
+                if (timeToMins(estimated) > timeToMins(last_br_train)) {
+                    return last_br_train;
+                }
+
+                return estimated;
+            }
+        }
+    }
+
+    // Light Blue line
+    if (stn.line == LB && dest.line == LB) {
+        Time first_lb_train = firstTrainTime(stn, day_type, dest);
+        Time last_lb_train = lastTrainTime(stn, day_type, dest);
+
+        if (timeToMins(first_lb_train) > now_mins) {
+            return first_lb_train;
+        } else if (timeToMins(last_lb_train) < now_mins) {
+            return INVALID_TIME;
+        } else { // Normal: just use worst case approximations
+            if (day_type <= 0 || day_type > 7) {
+                throw std::invalid_argument("Invalid day_type: " + std::to_string(day_type));
+            }
+
+            // 以尖峰(06:30~08:30；17:30~19:30)約 6分鐘、離峰及假日約8分鐘的班距運行。
+            if (day_type <= 5 && ((now_mins >= timeToMins(Time{6, 30}) && now_mins <= timeToMins(Time{8, 30})) || (now_mins >= timeToMins(Time{17, 30}) && now_mins <= timeToMins(Time{19, 30})))) {
+                Time estimated = minsToTime(now_mins + 6);
+
+                if (timeToMins(estimated) > timeToMins(last_lb_train)) {
+                    return last_lb_train;
+                }
+
+                return estimated;
+            } else {
+                Time estimated = minsToTime(now_mins + 8);
+
+                if (timeToMins(estimated) > timeToMins(last_lb_train)) {
+                    return last_lb_train;
+                }
+
+                return estimated;
             }
         }
     }
@@ -267,14 +363,14 @@ Time nextTrainTime(const Station& stn, int day_type, int now_mins, const Station
 
     // Find the closest entry that has time >= now_mins
     auto it = std::lower_bound(
-        train_schedule.begin(),
-        train_schedule.end(),
-        now_mins,
-        [](const Train& t, int value) {
-            return t.time < value;
-        }
+            train_schedule.begin(),
+            train_schedule.end(),
+            now_mins,
+            [](const Train& t, int value) {
+                return t.time < value;
+            }
     );
-    
+
     if (it != train_schedule.end()) {
         // *it is the first Train with t.time >= target_time
         while (!oneTrainReachDest(stn, dest, *it)) {
@@ -291,7 +387,7 @@ Time nextTrainTime(const Station& stn, int day_type, int now_mins, const Station
 }
 
 Time firstTrainTime(const Station& stn, int day_type, const Station& dest) {
-    if (stn.line != BR) { // Given timetable
+    if (stn.line != BR && stn.line != LB) { // Given timetable
         // All trains begin at 6am
         return nextTrainTime(stn, day_type, Time{6, 0}, dest);
     } else { // Deal with it separately
@@ -306,13 +402,21 @@ Time firstTrainTime(const Station& stn, int day_type, const Station& dest) {
                 throw std::invalid_argument("stn and dest are the same station");
             }
 
-            return BR_FIRST_TRAINS[stn.stn_num][stn.stn_num < dest.stn_num ? 0 : 1];
+            if (stn.line == BR) {
+                return BR_FIRST_TRAINS[stn.stn_num][stn.stn_num < dest.stn_num ? 0 : 1];
+            } else if (stn.line == LB) {
+                if (day_type <= 5) {
+                    return LB_FIRST_TRAINS_WEEKDAY[stn.stn_num][stn.stn_num < dest.stn_num ? 0 : 1];
+                } else {
+                    return LB_FIRST_TRAINS_HOLIDAY[stn.stn_num][stn.stn_num < dest.stn_num ? 0 : 1];
+                }
+            }
         }
     }
 }
 
 Time lastTrainTime(const Station& stn, int day_type, const Station& dest) {
-    if (stn.line != BR) { // Given timetable
+    if (stn.line != BR && stn.line != LB) { // Given timetable
         std::vector<Train> train_schedule = loadStationSchedule(stn, day_type);
 
         if (train_schedule.empty()) {
@@ -339,7 +443,11 @@ Time lastTrainTime(const Station& stn, int day_type, const Station& dest) {
                 throw std::invalid_argument("stn and dest are the same station");
             }
 
-            return BR_LAST_TRAINS[stn.stn_num][stn.stn_num < dest.stn_num ? 0 : 1];
+            if (stn.line == BR) {
+                return BR_LAST_TRAINS[stn.stn_num][stn.stn_num < dest.stn_num ? 0 : 1];
+            } else if (stn.line == LB) {
+                return LB_LAST_TRAINS[stn.stn_num][stn.stn_num < dest.stn_num ? 0 : 1];
+            }
         }
     }
 }

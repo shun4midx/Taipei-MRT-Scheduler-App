@@ -17,5 +17,6 @@
     <color name="line_yellow">#FFD700</color>
     <color name="line_green">#009944</color>
     <color name="line_blue">#0072CE</color>
+    <color name="line_light_blue">#33C4EF</color>
     <color name="line_brown">#8B5A2B</color>
 </resources>

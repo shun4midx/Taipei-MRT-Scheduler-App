@@ -12,7 +12,7 @@
 
 // ======== DEFINITIONS ======== //
 enum Language {zh, en, jp, kr};
-enum Line {R, O, G, BL, BR, Y};
+enum Line {R, O, G, BL, BR, Y, LB};
 
 extern const std::unordered_map<Line, std::string> LINE_TO_STR;
 extern const std::unordered_map<std::string, Line> LINES;
@@ -42,6 +42,7 @@ extern std::vector<std::unordered_map<Language, std::string>> BR_NAMES;
 extern std::vector<std::unordered_map<Language, std::string>> Y_NAMES;
 extern std::vector<std::unordered_map<Language, std::string>> O01_NAMES;
 extern std::vector<std::unordered_map<Language, std::string>> O50_NAMES;
+extern std::vector<std::unordered_map<Language, std::string>> LB_NAMES;
 
 // ======== RETRIEVAL FUNCTIONS ======== //
 bool sameTime(const Time& time1, const Time& time2);

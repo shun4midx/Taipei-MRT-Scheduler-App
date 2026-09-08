@@ -11,56 +11,63 @@
 #include <stdexcept>
 
 // ======== DATA ======== //
-const int INVALID_DURATION = -114514; // I know I'm supposed to take this seriously but I clearly am not
+const int INVALID_DURATION = -0x0BeDead; // I know I'm supposed to take this seriously but I clearly am not
 
 const std::unordered_map<Line, std::vector<int>> LINE_PREFIX_DURATION = {
-    // Red line
-    {R, {
-        INVALID_DURATION,
-        -3, 0, 2, 4, 6, 8, 9, 13, 15, // R01-09
-        17, 18, 20, 21, 23, 26, 28, 30, 31, 33, // R10-19
-        35, 37, 39, 41, 44, 45, 48, 51, 54 // R20-28
-    }},
+        // Red line
+        {R, {
+                    INVALID_DURATION,
+                                      -3, 0, 2, 4, 6, 8, 9, 13, 15, // R01-09
+                                                                      17, 18, 20, 21, 23, 26, 28, 30, 31, 33, // R10-19
+                                                                                                              35, 37, 39, 41, 44, 45, 48, 51, 54 // R20-28
+            }},
 
-    // Green line
-    {G, {
-        INVALID_DURATION,
-        0, 2, 4, 6, 8, 10, 12, 14, 16, // G01-09
-        18, 20, 22, 24, 26, 28, 31, 32, 35, 37 // G10-19
-    }},
+        // Green line
+        {G, {
+                    INVALID_DURATION,
+                                      0, 2, 4, 6, 8, 10, 12, 14, 16, // G01-09
+                                                                      18, 20, 22, 24, 26, 28, 31, 32, 35, 37 // G10-19
+            }},
 
-    // Blue line
-    {BL, {
-        INVALID_DURATION,
-        0, 3, 6, 8, 11, 13, 14, 17, 18, // BL01-09
-        22, 24, 27, 29, 30, 33, 34, 36, 38, 40, // BL10-19
-        41, 44, 46, 48 // BL20-23
-    }},
+        // Blue line
+        {BL, {
+                    INVALID_DURATION,
+                                      0, 3, 6, 8, 11, 13, 14, 17, 18, // BL01-09
+                                                                      22, 24, 27, 29, 30, 33, 34, 36, 38, 40, // BL10-19
+                                                                                                              41, 44, 46, 48 // BL20-23
+            }},
 
-    // Brown line
-    {BR, {
-        INVALID_DURATION,
-        0, 2, 3, 5, 7, 10, 11, 14, 15, // BR01-09
-        17, 19, 21, 23, 27, 29, 31, 33, 34, 36, // BR10-19
-        37, 40, 42, 43, 45 // BR20-24
-    }},
+        // Brown line
+        {BR, {
+                    INVALID_DURATION,
+                                      0, 2, 3, 5, 7, 10, 11, 14, 15, // BR01-09
+                                                                      17, 19, 21, 23, 27, 29, 31, 33, 34, 36, // BR10-19
+                                                                                                              37, 40, 42, 43, 45 // BR20-24
+            }},
 
-    // Yellow line
-    {Y, {
-        INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, // empty 00-06
-        0, 3, 5, 7, 9, 12, 15, 16, 19, 21, 25, 28, 30, 33
-    }},
+        // Yellow line
+        {Y, {
+                    INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, // empty 00-06
+                    0, 3, 5, 7, 9, 12, 15, 16, 19, 21, 25, 28, 30, 33
+            }},
 
-    // Orange line
-    {O, {
-        INVALID_DURATION,
-        0, 2, 4, 6, 10, 14, 17, 19, 21, 23, 25, 26, // Up til O12
-        29, 31, 33, 36, 38, 40, 43, 45, 48, // Up til O21
-        INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, // empty 22-29
-        INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, // empty 30-39
-        INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, // empty 40-49
-        29, 32, 33, 35, 38 // O50 to O54
-    }}
+        // Orange line
+        {O, {
+                    INVALID_DURATION,
+                                      0, 2, 4, 6, 10, 14, 17, 19, 21, 23, 25, 26, // Up til O12
+                                                                                  29, 31, 33, 36, 38, 40, 43, 45, 48, // Up til O21
+                                                                                                                      INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, // empty 22-29
+                    INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, // empty 30-39
+                    INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, INVALID_DURATION, // empty 40-49
+                    29, 32, 33, 35, 38 // O50 to O54
+            }},
+
+        // Light Blue line
+        {LB, {
+                    INVALID_DURATION,
+                                      0, 2, 5, 8, 11, 14, 17, 22, 25, // LB01-09
+                                                                      27, 31, 34 // LB10-12
+            }}
 };
 
 // ======== FUNCTIONS ======== //
@@ -185,7 +192,7 @@ PathTimes pathETA(const Path& stn_path, Time curr_time, int day_type) {
                 temp.second = temp.first;
 
                 arrival_times.push_back(temp);
-                
+
                 // Next temp
                 temp.first = minsAfter(temp.second, getTransferTime(stn_path[i], stn_path[i + 1]));
             } else {
